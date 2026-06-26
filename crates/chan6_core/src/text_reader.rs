@@ -113,9 +113,9 @@ fn prepare_table(path: &Path, raw: &str) -> Result<PreparedTable> {
 
 fn looks_like_header(line: &str) -> bool {
     let n = norm(line);
-    contains_any(&n, &["datetime", "time", "成交时间", "时间", "日期时间"])
-        && contains_any(&n, &["price", "成交价", "成交价格", "最新价", "价格"])
-        && contains_any(&n, &["volume", "vol", "qty", "成交量", "数量", "成交数量", "手数"])
+    contains_any(&n, &["datetime", "time", "\u{6210}\u{4ea4}\u{65f6}\u{95f4}", "\u{65f6}\u{95f4}", "\u{65e5}\u{671f}\u{65f6}\u{95f4}"])
+        && contains_any(&n, &["price", "\u{6210}\u{4ea4}\u{4ef7}", "\u{6210}\u{4ea4}\u{4ef7}\u{683c}", "\u{6700}\u{65b0}\u{4ef7}", "\u{4ef7}\u{683c}"])
+        && contains_any(&n, &["volume", "vol", "qty", "\u{6210}\u{4ea4}\u{91cf}", "\u{6210}\u{4ea4}", "\u{6570}\u{91cf}", "\u{6210}\u{4ea4}\u{6570}\u{91cf}", "\u{624b}\u{6570}"])
 }
 
 fn contains_any(n: &str, words: &[&str]) -> bool {
@@ -135,14 +135,14 @@ fn delimiter_of(line: &str) -> u8 {
 }
 
 fn detect_columns(headers: &StringRecord, has_default_symbol: bool) -> Result<Columns> {
-    let symbol = find(headers, &["symbol", "code", "股票代码", "证券代码", "代码", "证券"]);
-    let time = find(headers, &["datetime", "time", "成交时间", "时间", "日期时间"])
+    let symbol = find(headers, &["symbol", "code", "\u{80a1}\u{7968}\u{4ee3}\u{7801}", "\u{8bc1}\u{5238}\u{4ee3}\u{7801}", "\u{4ee3}\u{7801}", "\u{8bc1}\u{5238}"]);
+    let time = find(headers, &["datetime", "time", "\u{6210}\u{4ea4}\u{65f6}\u{95f4}", "\u{65f6}\u{95f4}", "\u{65e5}\u{671f}\u{65f6}\u{95f4}"])
         .ok_or_else(|| anyhow!("missing time column"))?;
-    let price = find(headers, &["price", "成交价", "成交价格", "最新价", "价格"])
+    let price = find(headers, &["price", "\u{6210}\u{4ea4}\u{4ef7}", "\u{6210}\u{4ea4}\u{4ef7}\u{683c}", "\u{6700}\u{65b0}\u{4ef7}", "\u{4ef7}\u{683c}"])
         .ok_or_else(|| anyhow!("missing price column"))?;
-    let volume = find(headers, &["volume", "vol", "qty", "成交量", "数量", "成交数量", "手数"])
+    let volume = find(headers, &["volume", "vol", "qty", "\u{6210}\u{4ea4}\u{91cf}", "\u{6210}\u{4ea4}", "\u{6570}\u{91cf}", "\u{6210}\u{4ea4}\u{6570}\u{91cf}", "\u{624b}\u{6570}"])
         .ok_or_else(|| anyhow!("missing volume column"))?;
-    let amount = find(headers, &["amount", "成交额", "成交金额", "金额"]);
+    let amount = find(headers, &["amount", "\u{6210}\u{4ea4}\u{989d}", "\u{6210}\u{4ea4}\u{91d1}\u{989d}", "\u{91d1}\u{989d}"]);
 
     if symbol.is_none() && !has_default_symbol {
         return Err(anyhow!("missing symbol column and no default symbol"));
