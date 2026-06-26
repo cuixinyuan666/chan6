@@ -123,6 +123,26 @@ enum Commands {
         #[arg(long, default_value_t = 0)]
         top: usize,
     },
+
+    QueryChart {
+        #[arg(long)]
+        db: PathBuf,
+
+        #[arg(long)]
+        symbol: String,
+
+        #[arg(long, default_value_t = 0)]
+        offset: i64,
+
+        #[arg(long, default_value_t = 300)]
+        limit: i64,
+
+        #[arg(long)]
+        chip_bar_id: Option<i64>,
+
+        #[arg(long, default_value_t = 0)]
+        top: usize,
+    },
 }
 
 fn main() -> Result<()> {
@@ -411,6 +431,49 @@ fn main() -> Result<()> {
             } else {
                 println!("null");
             }
+        }
+        Commands::QueryChart {
+            db,
+            symbol,
+            offset,
+            limit,
+            chip_bar_id,
+            top,
+        } => {
+            let conn = open_existing_db(&db)?;
+            let kline = query_kline_1m(&conn, &symbol, offset, limit)?;
+            let resolved_chip_bar_id = chip_bar_id.or_else(|| kline.last().map(|x| x.bar_id));
+
+            let chip = if let Some(bar_id) = resolved_chip_bar_id {
+                let mut levels = query_chip_state(&conn, &symbol, bar_id)?;
+
+                if top > 0 {
+                    levels.sort_by(|a, b| {
+                        b.volume
+                            .partial_cmp(&a.volume)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                    levels.truncate(top);
+                    levels.sort_by_key(|x| x.price_tick);
+                }
+
+                levels
+            } else {
+                Vec::new()
+            };
+
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "symbol": symbol,
+                    "offset": offset,
+                    "limit": limit,
+                    "kline_count": kline.len(),
+                    "chip_bar_id": resolved_chip_bar_id,
+                    "kline": kline,
+                    "chip": chip,
+                }))?
+            );
         }
     }
 
