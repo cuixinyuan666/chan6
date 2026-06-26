@@ -3,7 +3,7 @@ use chan6_core::{
     import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, query_kline_1m_at,
     read_ticks_from_csv,
     storage::{insert_source_file_record, open_db, source_file_exists},
-    ImportConfig, Tick, TickCsvReadOptions,
+    ChipLevel, ImportConfig, Tick, TickCsvReadOptions,
 };
 use clap::{Parser, Subcommand};
 use rusqlite::Connection;
@@ -397,16 +397,7 @@ fn main() -> Result<()> {
             top,
         } => {
             let conn = open_existing_db(&db)?;
-            let mut levels = query_chip_state(&conn, &symbol, bar_id)?;
-            if top > 0 {
-                levels.sort_by(|a, b| {
-                    b.volume
-                        .partial_cmp(&a.volume)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                });
-                levels.truncate(top);
-                levels.sort_by_key(|x| x.price_tick);
-            }
+            let levels = select_chip_levels(query_chip_state(&conn, &symbol, bar_id)?, top);
             println!("{}", serde_json::to_string_pretty(&levels)?);
         }
         Commands::QueryChipAt {
@@ -420,17 +411,8 @@ fn main() -> Result<()> {
             let kline = query_kline_1m_at(&conn, &symbol, day, minute)?;
 
             if let Some(kline) = kline {
-                let mut levels = query_chip_state(&conn, &symbol, kline.bar_id)?;
-
-                if top > 0 {
-                    levels.sort_by(|a, b| {
-                        b.volume
-                            .partial_cmp(&a.volume)
-                            .unwrap_or(std::cmp::Ordering::Equal)
-                    });
-                    levels.truncate(top);
-                    levels.sort_by_key(|x| x.price_tick);
-                }
+                let levels =
+                    select_chip_levels(query_chip_state(&conn, &symbol, kline.bar_id)?, top);
 
                 println!(
                     "{}",
@@ -472,19 +454,7 @@ fn main() -> Result<()> {
             let resolved_chip_bar_id = chip_bar_id.or_else(|| kline.last().map(|x| x.bar_id));
 
             let chip = if let Some(bar_id) = resolved_chip_bar_id {
-                let mut levels = query_chip_state(&conn, &symbol, bar_id)?;
-
-                if top > 0 {
-                    levels.sort_by(|a, b| {
-                        b.volume
-                            .partial_cmp(&a.volume)
-                            .unwrap_or(std::cmp::Ordering::Equal)
-                    });
-                    levels.truncate(top);
-                    levels.sort_by_key(|x| x.price_tick);
-                }
-
-                levels
+                select_chip_levels(query_chip_state(&conn, &symbol, bar_id)?, top)
             } else {
                 Vec::new()
             };
@@ -531,17 +501,8 @@ fn main() -> Result<()> {
                 let kline = query_kline_1m(&conn, &symbol, window_offset, window_limit)?;
                 let target_index = kline.iter().position(|x| x.bar_id == target_bar_id);
 
-                let mut chip = query_chip_state(&conn, &symbol, target_bar_id)?;
-
-                if top > 0 {
-                    chip.sort_by(|a, b| {
-                        b.volume
-                            .partial_cmp(&a.volume)
-                            .unwrap_or(std::cmp::Ordering::Equal)
-                    });
-                    chip.truncate(top);
-                    chip.sort_by_key(|x| x.price_tick);
-                }
+                let chip =
+                    select_chip_levels(query_chip_state(&conn, &symbol, target_bar_id)?, top);
 
                 println!(
                     "{}",
@@ -572,6 +533,20 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn select_chip_levels(mut levels: Vec<ChipLevel>, top: usize) -> Vec<ChipLevel> {
+    if top > 0 {
+        levels.sort_by(|a, b| {
+            b.volume
+                .partial_cmp(&a.volume)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        levels.truncate(top);
+        levels.sort_by_key(|x| x.price_tick);
+    }
+
+    levels
 }
 
 enum BackfillOneResult {
