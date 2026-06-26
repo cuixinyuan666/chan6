@@ -3,7 +3,7 @@ use crate::model::{ChipAccumulator, ChipBin, ImportConfig, ImportReport, KLine1m
 use crate::session::date_from_trading_day;
 use crate::storage::{delete_symbol_data, insert_chip_delta_1m, insert_chip_snapshot, insert_kline_1m, open_db, set_metadata};
 use anyhow::{anyhow, Result};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, Connection};
 use std::collections::BTreeMap;
 
 pub fn import_ticks_csv_to_sqlite(config: ImportConfig) -> Result<ImportReport> {
@@ -79,13 +79,11 @@ fn import_sorted_ticks(conn: &Connection, ticks: &[Tick], config: &ImportConfig)
 }
 
 fn next_bar_id_for_symbol(conn: &Connection, symbol: &str) -> Result<i64> {
-    let max_id: Option<i64> = conn
-        .query_row(
-            "SELECT MAX(bar_id) FROM kline_1m WHERE symbol = ?1",
-            params![symbol],
-            |row| row.get(0),
-        )
-        .optional()?;
+    let max_id: Option<i64> = conn.query_row(
+        "SELECT MAX(bar_id) FROM kline_1m WHERE symbol = ?1",
+        params![symbol],
+        |row| row.get::<_, Option<i64>>(0),
+    )?;
     Ok(max_id.map(|x| x + 1).unwrap_or(0))
 }
 
