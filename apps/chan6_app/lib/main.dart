@@ -131,6 +131,9 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
       return;
     }
 
+    final previousOffset = _windowOffset;
+    final previousLimit = _windowLimit;
+
     final safeOffset = math.max(0, offset);
     final safeLimit = limit.clamp(40, 1200).toInt();
     final seq = ++_windowSeq;
@@ -157,6 +160,19 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
         return;
       }
 
+      if (state.kline.isEmpty) {
+        setState(() {
+          _loadingWindow = false;
+          _loadingChip = false;
+          _windowOffset = previousOffset;
+          _windowLimit = previousLimit;
+          _source = 'chan6_cli/query-chart';
+          _message =
+              '$reason：窗口超出数据范围，已保留当前窗口 offset=$previousOffset, limit=$previousLimit';
+        });
+        return;
+      }
+
       setState(() {
         _state = state;
         _loadingWindow = false;
@@ -174,7 +190,10 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
 
       setState(() {
         _loadingWindow = false;
-        _message = '$reason：query-chart 失败，保留当前窗口：$error';
+        _windowOffset = previousOffset;
+        _windowLimit = previousLimit;
+        _message =
+            '$reason：query-chart 失败，已恢复当前窗口 offset=$previousOffset, limit=$previousLimit：$error';
       });
     }
   }
