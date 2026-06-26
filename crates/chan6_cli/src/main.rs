@@ -275,7 +275,19 @@ fn main() -> Result<()> {
                 println!(
                     "{}",
                     serde_json::to_string_pretty(&json!({
-                        "kline": kline,
+                        "symbol": &kline.symbol,
+                        "bar_id": kline.bar_id,
+                        "trading_day": kline.trading_day,
+                        "minute": kline.minute,
+                        "start_ts": kline.start_ts,
+                        "end_ts": kline.end_ts,
+                        "open": kline.open,
+                        "high": kline.high,
+                        "low": kline.low,
+                        "close": kline.close,
+                        "volume": kline.volume,
+                        "amount": kline.amount,
+                        "trade_count": kline.trade_count,
                         "chip": levels,
                     }))?
                 );
