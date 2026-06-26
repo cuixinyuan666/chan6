@@ -11,10 +11,12 @@
 //! - Rhythm lines are computed by Rust and rendered by Flutter.
 
 pub mod config;
+pub mod include;
 pub mod model;
 pub mod standard;
 
 pub use config::{ChanBiMode, ChanConfig, ChanFxMode, ChanIncludeMode, ChanSegmentN};
+pub use include::{has_include_relation, merge_included_bars};
 pub use model::{
     ChanBar, ChanBi, ChanDirection, ChanFx, ChanFxKind, ChanMergedBar, ChanRhythmHit,
     ChanRhythmLine, ChanSegment, CHAN_SEGMENT_N_EXTENSION_START, CHAN_SEGMENT_N_LINE,
