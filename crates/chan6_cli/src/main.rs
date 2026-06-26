@@ -5,6 +5,7 @@ use chan6_core::{
 use clap::{Parser, Subcommand};
 use rusqlite::Connection;
 use serde_json::json;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Parser)]
@@ -17,7 +18,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Import offline tick CSV into SQLite cache.
+    /// Import one offline tick CSV into SQLite cache.
     ImportTick {
         /// Offline tick CSV path.
         #[arg(long)]
@@ -30,6 +31,33 @@ enum Commands {
         /// Symbol used when CSV has no symbol/code column.
         #[arg(long)]
         symbol: Option<String>,
+
+        /// Price scale. 1000 means 10.235 -> price_tick 10235.
+        #[arg(long, default_value_t = 1000.0)]
+        price_scale: f64,
+
+        /// Save one full chip snapshot every N bars.
+        #[arg(long, default_value_t = 60)]
+        snapshot_interval: i64,
+
+        /// Delete existing rows of imported symbols before writing new data.
+        #[arg(long, default_value_t = false)]
+        replace: bool,
+    },
+
+    /// Import all CSV files in a directory. The file stem is used as default symbol when CSV has no symbol column.
+    ImportDir {
+        /// Directory containing offline tick CSV files.
+        #[arg(long)]
+        dir: PathBuf,
+
+        /// SQLite cache path.
+        #[arg(long)]
+        db: PathBuf,
+
+        /// Recursively scan subdirectories.
+        #[arg(long, default_value_t = false)]
+        recursive: bool,
 
         /// Price scale. 1000 means 10.235 -> price_tick 10235.
         #[arg(long, default_value_t = 1000.0)]
@@ -110,6 +138,54 @@ fn main() -> Result<()> {
             })?;
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
+        Commands::ImportDir {
+            dir,
+            db,
+            recursive,
+            price_scale,
+            snapshot_interval,
+            replace,
+        } => {
+            let files = collect_csv_files(&dir, recursive)?;
+            if files.is_empty() {
+                bail!("no csv files found in {}", dir.display());
+            }
+
+            let mut reports = Vec::new();
+            let mut failed = Vec::new();
+
+            for csv in files {
+                let symbol = infer_symbol_from_file_name(&csv);
+                match import_ticks_csv_to_sqlite(ImportConfig {
+                    csv_path: csv.clone(),
+                    db_path: db.clone(),
+                    default_symbol: symbol,
+                    price_scale,
+                    snapshot_interval,
+                    replace_symbol: replace,
+                }) {
+                    Ok(report) => reports.push(json!({
+                        "csv": csv.display().to_string(),
+                        "report": report,
+                    })),
+                    Err(err) => failed.push(json!({
+                        "csv": csv.display().to_string(),
+                        "error": err.to_string(),
+                    })),
+                }
+            }
+
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "db_path": db.display().to_string(),
+                    "imported_count": reports.len(),
+                    "failed_count": failed.len(),
+                    "imported": reports,
+                    "failed": failed,
+                }))?
+            );
+        }
         Commands::ListSymbols { db } => {
             let conn = open_existing_db(&db)?;
             let rows = list_symbols(&conn)?;
@@ -159,11 +235,57 @@ fn main() -> Result<()> {
 fn open_existing_db(path: &Path) -> Result<Connection> {
     if !path.exists() {
         bail!(
-            "database does not exist: {}. Run import-tick first.",
+            "database does not exist: {}. Run import-tick or import-dir first.",
             path.display()
         );
     }
     open_db(path)
+}
+
+fn collect_csv_files(dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
+    if !dir.exists() {
+        bail!("directory does not exist: {}", dir.display());
+    }
+    if !dir.is_dir() {
+        bail!("not a directory: {}", dir.display());
+    }
+
+    let mut out = Vec::new();
+    collect_csv_files_inner(dir, recursive, &mut out)?;
+    out.sort();
+    Ok(out)
+}
+
+fn collect_csv_files_inner(dir: &Path, recursive: bool, out: &mut Vec<PathBuf>) -> Result<()> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            if recursive {
+                collect_csv_files_inner(&path, recursive, out)?;
+            }
+        } else if path
+            .extension()
+            .and_then(|x| x.to_str())
+            .map(|x| x.eq_ignore_ascii_case("csv"))
+            .unwrap_or(false)
+        {
+            out.push(path);
+        }
+    }
+    Ok(())
+}
+
+fn infer_symbol_from_file_name(path: &Path) -> Option<String> {
+    let stem = path.file_stem()?.to_string_lossy();
+    let digits: String = stem.chars().filter(|c| c.is_ascii_digit()).collect();
+    if digits.len() >= 6 {
+        Some(digits[digits.len() - 6..].to_string())
+    } else if !stem.is_empty() {
+        Some(stem.to_string())
+    } else {
+        None
+    }
 }
 
 fn list_symbols(conn: &Connection) -> Result<Vec<String>> {
