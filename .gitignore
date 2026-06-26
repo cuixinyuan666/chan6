@@ -1,0 +1,9 @@
+target/
+*.db
+*.sqlite
+*.sqlite3
+/data/ticks/
+/data/cache/
+.DS_Store
+.idea/
+.vscode/
