@@ -2,15 +2,8 @@
 """Generate chan.py gold output for Chan6 stage-1 Rust alignment.
 
 This script does not implement Chan logic. It calls the hichan Python backend
-(`backend/app/chanpy_engine.py::analyze_bars`) and writes the resulting
-merged_bars/fx/bi structures as a gold JSON fixture.
-
-Usage example:
-
-    python tools/generate_chanpy_stage1_gold.py \
-      --hichan-repo ../chan_replay_app \
-      --input fixtures/chanpy_stage1/input/stage1_small.csv \
-      --out fixtures/chanpy_stage1/gold/stage1_small_chanpy_gold.json
+(`backend/app/chanpy_engine.py::analyze_bars`) and writes a compact gold JSON
+fixture containing only the stage-1 structures used by Rust tests.
 """
 
 from __future__ import annotations
@@ -87,28 +80,66 @@ def import_hichan_engine(hichan_repo: Path):
     return analyze_bars
 
 
-def normalize_gold(result: dict[str, Any], *, input_path: Path, hichan_repo: Path) -> dict[str, Any]:
-    meta = dict(result.get("meta") or {})
-    meta.update(
-        {
-            "gold_source": "hichan/chan.py",
-            "hichan_repo": str(hichan_repo.resolve()),
-            "input_csv": str(input_path),
-            "generated_by": "tools/generate_chanpy_stage1_gold.py",
-        }
-    )
+def compact_merged_bar(row: dict[str, Any]) -> dict[str, Any]:
+    keys = [
+        "index",
+        "start_raw_index",
+        "end_raw_index",
+        "high_raw_index",
+        "low_raw_index",
+        "open",
+        "high",
+        "low",
+        "close",
+    ]
+    return {key: row.get(key) for key in keys}
+
+
+def compact_fx(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "index": row.get("index"),
+        "raw_index": row.get("raw_index"),
+        "type": row.get("type"),
+        "price": row.get("price"),
+    }
+
+
+def compact_bi(row: dict[str, Any]) -> dict[str, Any]:
+    keys = [
+        "index",
+        "start_raw_index",
+        "end_raw_index",
+        "start_price",
+        "end_price",
+        "direction",
+        "is_sure",
+    ]
+    return {key: row.get(key) for key in keys}
+
+
+def normalize_gold(result: dict[str, Any]) -> dict[str, Any]:
+    merged_bars = [compact_merged_bar(x) for x in result.get("merged_bars", [])]
+    fx = [compact_fx(x) for x in result.get("fx", [])]
+    bi = [compact_bi(x) for x in result.get("bi", [])]
+    meta = result.get("meta") or {}
     return {
         "ok": bool(result.get("ok")),
-        "meta": meta,
-        "bars": result.get("bars", []),
-        "merged_bars": result.get("merged_bars", []),
-        "fx": result.get("fx", []),
-        "bi": result.get("bi", []),
-        "seg": result.get("seg", []),
-        "zs": result.get("zs", []),
-        "bsp": result.get("bsp", []),
-        "frames": result.get("frames", []),
-        "error": result.get("error"),
+        "meta": {
+            "engine": meta.get("engine"),
+            "symbol": meta.get("symbol"),
+            "freq": meta.get("freq"),
+            "adjust": meta.get("adjust"),
+            "mode": meta.get("mode"),
+            "gold_source": "hichan/chan.py",
+            "generated_by": "tools/generate_chanpy_stage1_gold.py",
+            "bars_count": len(result.get("bars", [])),
+            "merged_bars_count": len(merged_bars),
+            "fx_count": len(fx),
+            "bi_count": len(bi),
+        },
+        "merged_bars": merged_bars,
+        "fx": fx,
+        "bi": bi,
     }
 
 
@@ -131,19 +162,19 @@ def main() -> int:
         mode=args.mode,
         config={},
     )
-    gold = normalize_gold(result, input_path=input_path, hichan_repo=hichan_repo)
+    gold = normalize_gold(result)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(gold, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"wrote {out_path}")
     print(
         "counts:",
-        f"bars={len(gold['bars'])}",
-        f"merged_bars={len(gold['merged_bars'])}",
-        f"fx={len(gold['fx'])}",
-        f"bi={len(gold['bi'])}",
+        f"bars={gold['meta']['bars_count']}",
+        f"merged_bars={gold['meta']['merged_bars_count']}",
+        f"fx={gold['meta']['fx_count']}",
+        f"bi={gold['meta']['bi_count']}",
     )
     if not gold["ok"]:
-        print(f"warning: chan.py returned fallback/error: {gold.get('error')}")
+        print(f"warning: chan.py returned fallback/error: {result.get('error')}")
         return 2
     return 0
 
