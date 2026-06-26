@@ -7,7 +7,7 @@ Chan6 的缠论实现必须遵守以下规则：
 1. 缠论计算逻辑使用 Rust 实现。
 2. 不使用 Python 实现核心缠论算法。
 3. Flutter 前端只负责显示、交互、图层管理，不参与缠论判定。
-4. Rust 后端是分型、笔、线段、N段、中枢、买卖点、节奏线、step 回放状态、BSP 特征、ML 打分的唯一计算权威。
+4. Rust 后端是分型、笔、线段、N段、中枢、买卖点、节奏线、1.382 结构、筹码分布、step 回放状态、BSP 特征、ML 打分的唯一计算权威。
 5. 所有图形对象必须使用 `bar_id + price` 锚定，不允许使用屏幕坐标作为业务坐标。
 6. 缠论逻辑参考仓库 `git@github.com:cuixinyuan666/chan_replay_app.git` 的 `hichan` 分支。
 7. 参考逻辑时必须先理解语义，再迁移到 Rust，不做机械翻译。
@@ -17,8 +17,10 @@ Chan6 的缠论实现必须遵守以下规则：
 11. 从 3段开始属于 Chan6 基于 `chan.py` 的扩展逻辑。
 12. N段默认使用最大可推导值：持续递归升阶，直到不再满足下一层级的完整顶底结构。
 13. 必须实现节奏线；节奏线由 Rust 后端计算，Flutter 只负责渲染。
-14. 必须保留 step 模式；step 模式是后期逐 K 回放、回测、标注、样本生成、BSP 特征提取的基础。
-15. 数据结构必须适配后期机器学习：BSP 特征提取、标签生成、模型打分、样本导出、无未来函数校验。
+14. 必须实现 1.382 相关节奏/比例结构；1.382 特征后续必须进入 BSP/ML 特征体系。
+15. 筹码分布后续必须进入 BSP/ML 特征体系；筹码特征必须使用 step 当前 bar 及以前的累计筹码状态。
+16. 必须保留 step 模式；step 模式是后期逐 K 回放、回测、标注、样本生成、BSP 特征提取的基础。
+17. 数据结构必须适配后期机器学习：BSP 特征提取、标签生成、模型打分、样本导出、无未来函数校验。
 
 ## 1. 分层原则
 
@@ -36,6 +38,8 @@ Rust 负责：
 - 中枢识别
 - 买卖点识别
 - 节奏线识别与输出
+- 1.382 节奏/比例结构识别与输出
+- 筹码分布状态读取、聚合与特征提取
 - step 模式状态推进与快照输出
 - 回测事件生成
 - BSP 特征提取
@@ -51,6 +55,8 @@ Flutter 负责：
 - K线显示
 - 缠论图层显示
 - 节奏线图层显示
+- 1.382 节奏/比例结构显示
+- 筹码分布显示
 - step 回放控制
 - 回测结果显示
 - BSP 特征/打分结果显示
@@ -71,6 +77,8 @@ Flutter 不允许重新判断：
 - 中枢是否成立
 - 买卖点是否成立
 - 节奏线是否成立
+- 1.382 结构是否成立
+- 筹码特征是否成立
 - step 状态是否成立
 - BSP 特征是否成立
 - ML 打分是否成立
@@ -113,6 +121,12 @@ RHYTHM_LINE.start_bar_id
 RHYTHM_LINE.start_price
 RHYTHM_LINE.end_bar_id
 RHYTHM_LINE.end_price
+RHYTHM_1382.bar_id
+RHYTHM_1382.price
+CHIP_STATE.chip_bar_id
+CHIP_STATE.price
+CHIP_FEATURE.bar_id
+CHIP_FEATURE.price
 BSP.bar_id
 BSP.price
 BSP_FEATURE.bar_id
@@ -191,40 +205,43 @@ n=3
 5. 在 Flutter 中判断线段、segseg、N段顶底
 ```
 
-## 4. 节奏线标准
+## 4. 节奏线与 1.382 标准
 
-节奏线必须纳入 Chan6 缠论实现范围。
+节奏线和 1.382 节奏/比例结构必须纳入 Chan6 缠论实现范围。
 
 ### 4.1 计算权威
 
-节奏线由 Rust 后端计算。
+节奏线和 1.382 结构由 Rust 后端计算。
 
 Flutter 只允许：
 
 ```text
 1. 渲染 Rust 输出的节奏线
-2. 控制节奏线图层显示/隐藏
-3. 做鼠标命中和提示
+2. 渲染 Rust 输出的 1.382 相关命中、阈值、比例结构
+3. 控制节奏线图层显示/隐藏
+4. 做鼠标命中和提示
 ```
 
 Flutter 不允许：
 
 ```text
 1. 自行判断节奏线成立
-2. 自行生成节奏线业务对象
-3. 使用屏幕坐标保存节奏线
+2. 自行判断 1.382 结构成立
+3. 自行生成节奏线业务对象
+4. 自行生成 1.382 业务对象
+5. 使用屏幕坐标保存节奏线或 1.382 结构
 ```
 
 ### 4.2 参考来源
 
-节奏线逻辑参考：
+节奏线和 1.382 逻辑参考：
 
 ```text
 git@github.com:cuixinyuan666/chan_replay_app.git
 branch: hichan
 ```
 
-迁移时必须先确认 hichan 中节奏线的输入、输出、过滤条件、可见性策略和命中语义，再用 Rust 实现。
+迁移时必须先确认 hichan 中节奏线、1.382 的输入、输出、过滤条件、可见性策略和命中语义，再用 Rust 实现。
 
 ### 4.3 输出要求
 
@@ -241,6 +258,23 @@ end_price
 confirmed
 source
 visible
+ratio
+threshold_ratio
+threshold
+hit_count
+```
+
+其中 1.382 相关字段至少包括：
+
+```text
+ratio
+threshold_ratio
+threshold
+round_current
+round_ref
+hit_bar_id
+hit_price
+distance_to_threshold
 ```
 
 所有锚点仍然必须使用：
@@ -276,6 +310,7 @@ visible_start_bar_id
 visible_end_bar_id
 kline_count
 chan_snapshot
+chip_state
 new_events
 changed_objects
 bsp_candidates
@@ -291,12 +326,14 @@ meta
 ```text
 current_bar_id = 当前推进到的 K线
 visible_end_bar_id = 当前允许被算法看到的最后一根 K线
+chip_state = 当前 bar 及以前的累计筹码分布状态
 ```
 
 正常情况下：
 
 ```text
 visible_end_bar_id <= current_bar_id
+chip_state.chip_bar_id <= current_bar_id
 ```
 
 任何回测、BSP 特征、ML 打分都不得读取 `current_bar_id` 之后的数据。
@@ -314,6 +351,9 @@ step 模式用于：
 6. ML 训练样本生成
 7. ML 在线打分
 8. 策略解释和可视化回放
+9. 1.382 命中事件回放
+10. 节奏线命中事件回放
+11. 筹码分布状态回放
 ```
 
 ### 5.3 防未来函数要求
@@ -322,10 +362,12 @@ step 模式用于：
 
 ```text
 1. 特征只能使用 current_bar_id 及其之前的数据
-2. 标签可以使用未来收益，但必须写入 label_horizon，不允许混入 feature 字段
-3. ML score 只能基于 feature 字段生成
-4. 回测撮合必须记录 signal_bar_id / entry_bar_id / exit_bar_id
-5. 所有事件必须能追溯到触发它的 bar_id
+2. 节奏线/1.382 特征只能使用当前 step 已确认或当前可见的结构
+3. 筹码分布特征只能使用 chip_bar_id <= current_bar_id 的累计筹码状态
+4. 标签可以使用未来收益，但必须写入 label_horizon，不允许混入 feature 字段
+5. ML score 只能基于 feature 字段生成
+6. 回测撮合必须记录 signal_bar_id / entry_bar_id / exit_bar_id
+7. 所有事件必须能追溯到触发它的 bar_id
 ```
 
 禁止：
@@ -333,8 +375,10 @@ step 模式用于：
 ```text
 1. 用未来 K线修正当前特征
 2. 用未来收益污染 BSP 特征字段
-3. 前端临时生成训练特征
-4. 回测直接读取最终全量结果再假装逐 K 推进
+3. 用未来筹码状态污染当前筹码特征
+4. 用未来节奏线命中污染当前 1.382 特征
+5. 前端临时生成训练特征
+6. 回测直接读取最终全量结果再假装逐 K 推进
 ```
 
 ## 6. BSP 特征提取与 ML 打分标准
@@ -417,8 +461,21 @@ zs_width
 zs_height
 distance_to_zs_zg
 rhythm_ratio
+rhythm_line_count
+rhythm_hit_count
+rhythm_1382_ratio
+rhythm_1382_threshold
+rhythm_1382_distance
+rhythm_1382_hit_count
+nearest_rhythm_line_distance
 volume_ratio
+chip_poc_price
+chip_poc_distance
 chip_concentration
+chip_profit_ratio
+chip_upper_pressure_volume
+chip_lower_support_volume
+chip_pressure_support_ratio
 trend_strength
 pullback_depth
 macd_divergence_score
@@ -426,7 +483,77 @@ macd_divergence_score
 
 字段名一旦进入训练集，不允许随意改名；如需变更，必须提升 `feature_schema_version`。
 
-### 6.3 标签标准
+### 6.3 1.382 / 节奏线特征标准
+
+1.382 与节奏线后续必须进入 BSP/ML 特征。
+
+建议特征包括：
+
+```text
+rhythm_line_count
+rhythm_hit_count
+rhythm_active_line_count
+rhythm_nearest_threshold
+rhythm_nearest_distance
+rhythm_nearest_distance_pct
+rhythm_dir_up_count
+rhythm_dir_down_count
+rhythm_1382_ratio
+rhythm_1382_threshold
+rhythm_1382_distance
+rhythm_1382_distance_pct
+rhythm_1382_hit_count
+rhythm_1382_recent_hit_bars
+rhythm_1382_round_current
+rhythm_1382_round_ref
+```
+
+要求：
+
+```text
+1. 只能使用当前 step 已经可见的节奏线和命中点
+2. hit_bar_id 必须 <= current_bar_id
+3. threshold / ratio / distance 必须可追溯到具体 rhythm_line_id
+4. 1.382 特征字段必须与普通节奏线字段区分命名
+```
+
+### 6.4 筹码分布特征标准
+
+筹码分布后续必须进入 BSP/ML 特征。
+
+建议特征包括：
+
+```text
+chip_bar_id
+chip_poc_price
+chip_poc_distance
+chip_poc_distance_pct
+chip_total_volume
+chip_total_amount
+chip_concentration
+chip_price_band_width
+chip_above_price_volume
+chip_below_price_volume
+chip_upper_pressure_volume
+chip_lower_support_volume
+chip_pressure_support_ratio
+chip_profit_ratio
+chip_loss_ratio
+chip_recent_delta_volume
+chip_recent_delta_amount
+```
+
+要求：
+
+```text
+1. chip_bar_id 必须 <= current_bar_id
+2. 筹码特征只能使用当前 step 已经累积到的筹码状态
+3. 不允许用全量未来筹码分布生成当前样本特征
+4. 筹码价格锚点必须使用 price，时间锚点必须使用 bar_id
+5. 筹码分布特征字段必须进入 feature_schema_version 管理
+```
+
+### 6.5 标签标准
 
 训练标签建议命名为：
 
@@ -455,7 +582,7 @@ label_schema_version
 
 标签可以使用未来数据，但必须与特征严格分离。
 
-### 6.4 ML 打分标准
+### 6.6 ML 打分标准
 
 模型打分输出建议命名为：
 
@@ -483,7 +610,7 @@ explain
 
 打分结果只能依赖当时可见的 `ChanBspFeatureRow`。
 
-### 6.5 机器学习兼容性强制要求
+### 6.7 机器学习兼容性强制要求
 
 后续数据结构必须满足：
 
@@ -498,6 +625,7 @@ explain
 8. 支持训练集、验证集、测试集按时间切分
 9. 支持防未来函数校验
 10. 支持 ML score 回写到图表和回测结果中
+11. 支持 1.382 / 节奏线 / 筹码分布作为独立特征组开关
 ```
 
 ## 7. 开发顺序标准
@@ -511,16 +639,17 @@ explain
 4. 线段，也就是 1段
 5. segseg，也就是 2段，chan.py 原生逻辑
 6. 3段及以上 N段递归升阶，Chan6 扩展逻辑
-7. 节奏线
-8. 中枢
-9. 买卖点 / BSP
-10. step 模式
-11. 回测事件
-12. BSP 特征提取
-13. BSP 标签生成
-14. ML 打分
-15. 多级别联动
-16. 回测/选股接入
+7. 节奏线与 1.382
+8. 筹码分布特征接入
+9. 中枢
+10. 买卖点 / BSP
+11. step 模式
+12. 回测事件
+13. BSP 特征提取
+14. BSP 标签生成
+15. ML 打分
+16. 多级别联动
+17. 回测/选股接入
 ```
 
 禁止跳过基础结构直接开发中枢、买卖点、回测或 ML。
@@ -547,6 +676,8 @@ query-chan-basic
 segseg/2段
 3段及以上 N段
 节奏线
+1.382
+筹码分布特征
 中枢
 买卖点 / BSP
 step 模式
@@ -557,7 +688,7 @@ ML 打分
 多级别联动
 ```
 
-第一阶段虽然不实现线段、N段、节奏线、BSP、step、ML，但模型命名和 JSON 契约设计不能阻碍后续扩展。
+第一阶段虽然不实现线段、N段、节奏线、1.382、筹码分布特征、BSP、step、ML，但模型命名和 JSON 契约设计不能阻碍后续扩展。
 
 ## 9. JSON 输出标准
 
@@ -606,6 +737,9 @@ segseg
 nseg
 rhythm_lines
 rhythm_hits
+rhythm_1382
+chip_state
+chip_features
 zs
 bs_points
 step_frames
@@ -636,7 +770,8 @@ branch: hichan
 8. `segseg` 作为 2段，按 chan.py 原生逻辑理解和迁移。
 9. 3段及以上 N段作为 Chan6 扩展逻辑实现。
 10. 节奏线按 hichan 语义迁移为 Rust 后端输出。
-11. hichan 的 step / replay 语义可以参考，但 Chan6 的 step 推进、回测、特征提取必须在 Rust 中实现。
+11. 1.382 按 hichan 节奏线/命中语义迁移为 Rust 后端输出与 ML 特征。
+12. hichan 的 step / replay 语义可以参考，但 Chan6 的 step 推进、回测、特征提取必须在 Rust 中实现。
 
 ## 11. 每次修改缠论代码前的提醒
 
@@ -662,7 +797,9 @@ apps/chan6_app/lib/chart/data/chan_*.dart
 7. 是否遵守：线段=1段，segseg=2段，3段起为 Chan6 扩展？
 8. 是否遵守：N 默认取最大可推导层级？
 9. 是否遵守：节奏线由 Rust 后端输出，前端只渲染？
-10. 是否遵守：step 模式只使用当前 bar_id 及以前的数据？
-11. 是否遵守：BSP 特征与未来标签物理隔离？
-12. 是否遵守：ML 打分只依赖当时可见的特征？
+10. 是否遵守：1.382 结构由 Rust 后端输出，并进入 ML 特征？
+11. 是否遵守：筹码分布特征只使用当前 step 可见累计状态？
+12. 是否遵守：step 模式只使用当前 bar_id 及以前的数据？
+13. 是否遵守：BSP 特征与未来标签物理隔离？
+14. 是否遵守：ML 打分只依赖当时可见的特征？
 ```
