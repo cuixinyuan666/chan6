@@ -18,9 +18,9 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Import one offline tick CSV into SQLite cache.
+    /// Import one offline tick text file into SQLite cache.
     ImportTick {
-        /// Offline tick CSV path.
+        /// Offline tick text path, such as csv or txt.
         #[arg(long)]
         csv: PathBuf,
 
@@ -28,7 +28,7 @@ enum Commands {
         #[arg(long)]
         db: PathBuf,
 
-        /// Symbol used when CSV has no symbol/code column.
+        /// Symbol used when source file has no symbol/code column.
         #[arg(long)]
         symbol: Option<String>,
 
@@ -45,9 +45,9 @@ enum Commands {
         replace: bool,
     },
 
-    /// Import all CSV files in a directory. The file stem is used as default symbol when CSV has no symbol column.
+    /// Import all CSV/TXT files in a directory. The file stem is used as default symbol when source has no symbol column.
     ImportDir {
-        /// Directory containing offline tick CSV files.
+        /// Directory containing offline tick text files.
         #[arg(long)]
         dir: PathBuf,
 
@@ -146,9 +146,9 @@ fn main() -> Result<()> {
             snapshot_interval,
             replace,
         } => {
-            let files = collect_csv_files(&dir, recursive)?;
+            let files = collect_tick_files(&dir, recursive)?;
             if files.is_empty() {
-                bail!("no csv files found in {}", dir.display());
+                bail!("no csv/txt files found in {}", dir.display());
             }
 
             let mut reports = Vec::new();
@@ -165,11 +165,11 @@ fn main() -> Result<()> {
                     replace_symbol: replace,
                 }) {
                     Ok(report) => reports.push(json!({
-                        "csv": csv.display().to_string(),
+                        "file": csv.display().to_string(),
                         "report": report,
                     })),
                     Err(err) => failed.push(json!({
-                        "csv": csv.display().to_string(),
+                        "file": csv.display().to_string(),
                         "error": err.to_string(),
                     })),
                 }
@@ -242,7 +242,7 @@ fn open_existing_db(path: &Path) -> Result<Connection> {
     open_db(path)
 }
 
-fn collect_csv_files(dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
+fn collect_tick_files(dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
     if !dir.exists() {
         bail!("directory does not exist: {}", dir.display());
     }
@@ -251,29 +251,31 @@ fn collect_csv_files(dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
     }
 
     let mut out = Vec::new();
-    collect_csv_files_inner(dir, recursive, &mut out)?;
+    collect_tick_files_inner(dir, recursive, &mut out)?;
     out.sort();
     Ok(out)
 }
 
-fn collect_csv_files_inner(dir: &Path, recursive: bool, out: &mut Vec<PathBuf>) -> Result<()> {
+fn collect_tick_files_inner(dir: &Path, recursive: bool, out: &mut Vec<PathBuf>) -> Result<()> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
             if recursive {
-                collect_csv_files_inner(&path, recursive, out)?;
+                collect_tick_files_inner(&path, recursive, out)?;
             }
-        } else if path
-            .extension()
-            .and_then(|x| x.to_str())
-            .map(|x| x.eq_ignore_ascii_case("csv"))
-            .unwrap_or(false)
-        {
+        } else if is_supported_tick_file(&path) {
             out.push(path);
         }
     }
     Ok(())
+}
+
+fn is_supported_tick_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|x| x.to_str())
+        .map(|x| matches!(x.to_ascii_lowercase().as_str(), "csv" | "txt"))
+        .unwrap_or(false)
 }
 
 fn infer_symbol_from_file_name(path: &Path) -> Option<String> {
