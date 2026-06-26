@@ -1,9 +1,11 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use chan6_core::{
     import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, storage::open_db, ImportConfig,
 };
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use rusqlite::Connection;
+use serde_json::json;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Parser)]
 #[command(name = "chan6")]
@@ -40,6 +42,18 @@ enum Commands {
         /// Delete existing rows of imported symbols before writing new data.
         #[arg(long, default_value_t = false)]
         replace: bool,
+    },
+
+    /// List symbols that already exist in the SQLite cache.
+    ListSymbols {
+        #[arg(long)]
+        db: PathBuf,
+    },
+
+    /// Show SQLite cache statistics.
+    DbStats {
+        #[arg(long)]
+        db: PathBuf,
     },
 
     /// Query generated 1m klines.
@@ -96,13 +110,23 @@ fn main() -> Result<()> {
             })?;
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
+        Commands::ListSymbols { db } => {
+            let conn = open_existing_db(&db)?;
+            let rows = list_symbols(&conn)?;
+            println!("{}", serde_json::to_string_pretty(&rows)?);
+        }
+        Commands::DbStats { db } => {
+            let conn = open_existing_db(&db)?;
+            let stats = db_stats(&conn, &db)?;
+            println!("{}", serde_json::to_string_pretty(&stats)?);
+        }
         Commands::QueryKline {
             db,
             symbol,
             offset,
             limit,
         } => {
-            let conn = open_db(&db)?;
+            let conn = open_existing_db(&db)?;
             let rows = query_kline_1m(&conn, &symbol, offset, limit)?;
             println!("{}", serde_json::to_string_pretty(&rows)?);
         }
@@ -112,7 +136,7 @@ fn main() -> Result<()> {
             bar_id,
             top,
         } => {
-            let conn = open_db(&db)?;
+            let conn = open_existing_db(&db)?;
             let mut levels = query_chip_state(&conn, &symbol, bar_id)?;
 
             if top > 0 {
@@ -130,4 +154,91 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn open_existing_db(path: &Path) -> Result<Connection> {
+    if !path.exists() {
+        bail!(
+            "database does not exist: {}. Run import-tick first.",
+            path.display()
+        );
+    }
+    open_db(path)
+}
+
+fn list_symbols(conn: &Connection) -> Result<Vec<String>> {
+    let mut stmt = conn.prepare("SELECT DISTINCT symbol FROM kline_1m ORDER BY symbol ASC")?;
+    let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Into::into)
+}
+
+fn db_stats(conn: &Connection, db: &Path) -> Result<serde_json::Value> {
+    let price_scale = read_metadata(conn, "price_scale")?.unwrap_or_else(|| "1000".to_string());
+    let snapshot_interval =
+        read_metadata(conn, "snapshot_interval")?.unwrap_or_else(|| "60".to_string());
+
+    let symbols = list_symbol_stats(conn)?;
+
+    Ok(json!({
+        "db_path": db.display().to_string(),
+        "price_scale": price_scale,
+        "snapshot_interval": snapshot_interval,
+        "symbols": symbols,
+    }))
+}
+
+fn read_metadata(conn: &Connection, key: &str) -> Result<Option<String>> {
+    let mut stmt = conn.prepare("SELECT value FROM metadata WHERE key = ?1")?;
+    let mut rows = stmt.query([key])?;
+    if let Some(row) = rows.next()? {
+        Ok(Some(row.get(0)?))
+    } else {
+        Ok(None)
+    }
+}
+
+fn list_symbol_stats(conn: &Connection) -> Result<Vec<serde_json::Value>> {
+    let mut stmt = conn.prepare(
+        r#"
+        SELECT
+            k.symbol,
+            COUNT(*) AS kline_count,
+            MIN(k.bar_id) AS min_bar_id,
+            MAX(k.bar_id) AS max_bar_id,
+            MIN(k.trading_day) AS min_trading_day,
+            MAX(k.trading_day) AS max_trading_day,
+            COALESCE(d.chip_delta_rows, 0) AS chip_delta_rows,
+            COALESCE(s.snapshot_count, 0) AS snapshot_count
+        FROM kline_1m k
+        LEFT JOIN (
+            SELECT symbol, COUNT(*) AS chip_delta_rows
+            FROM chip_delta_1m
+            GROUP BY symbol
+        ) d ON d.symbol = k.symbol
+        LEFT JOIN (
+            SELECT symbol, COUNT(*) AS snapshot_count
+            FROM chip_snapshot
+            GROUP BY symbol
+        ) s ON s.symbol = k.symbol
+        GROUP BY k.symbol
+        ORDER BY k.symbol ASC
+        "#,
+    )?;
+
+    let rows = stmt.query_map([], |row| {
+        Ok(json!({
+            "symbol": row.get::<_, String>(0)?,
+            "kline_count": row.get::<_, i64>(1)?,
+            "min_bar_id": row.get::<_, Option<i64>>(2)?,
+            "max_bar_id": row.get::<_, Option<i64>>(3)?,
+            "min_trading_day": row.get::<_, Option<i32>>(4)?,
+            "max_trading_day": row.get::<_, Option<i32>>(5)?,
+            "chip_delta_rows": row.get::<_, i64>(6)?,
+            "snapshot_count": row.get::<_, i64>(7)?,
+        }))
+    })?;
+
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Into::into)
 }
