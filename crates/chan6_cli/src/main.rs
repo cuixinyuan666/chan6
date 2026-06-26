@@ -462,6 +462,23 @@ fn main() -> Result<()> {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&json!({
+                    "meta": {
+                        "schema_version": 1,
+                        "query": "query-chart",
+                        "symbol": &symbol,
+                        "kline_scope": "offset_limit_window",
+                        "offset": offset,
+                        "limit": limit,
+                        "kline_count": kline.len(),
+                        "chip_scope": if resolved_chip_bar_id.is_some() {
+                            "full_history_to_chip_bar"
+                        } else {
+                            "none"
+                        },
+                        "chip_bar_id": resolved_chip_bar_id,
+                        "chip_truncated": top > 0,
+                        "chip_top": top,
+                    },
                     "symbol": symbol,
                     "offset": offset,
                     "limit": limit,
@@ -507,6 +524,25 @@ fn main() -> Result<()> {
                 println!(
                     "{}",
                     serde_json::to_string_pretty(&json!({
+                        "meta": {
+                            "schema_version": 1,
+                            "query": "query-chart-at",
+                            "symbol": &symbol,
+                            "kline_scope": "target_centered_window",
+                            "day": day,
+                            "minute": minute,
+                            "before": before,
+                            "after": after,
+                            "window_offset": window_offset,
+                            "window_limit": window_limit,
+                            "kline_count": kline.len(),
+                            "target_bar_id": target_bar_id,
+                            "target_index": target_index,
+                            "chip_scope": "full_history_to_target_bar",
+                            "chip_bar_id": target_bar_id,
+                            "chip_truncated": top > 0,
+                            "chip_top": top,
+                        },
                         "symbol": symbol,
                         "day": day,
                         "minute": minute,
