@@ -168,8 +168,9 @@ fn main() -> Result<()> {
             let mut failed = Vec::new();
             let mut replaced_symbols = HashSet::new();
 
-            let precheck_conn = if !replace && db.exists() {
-                Some(open_db(&db)?)
+            let tracked_source_paths = if !replace && db.exists() {
+                let conn = open_db(&db)?;
+                Some(load_tracked_source_paths(&conn)?)
             } else {
                 None
             };
@@ -185,13 +186,13 @@ fn main() -> Result<()> {
                     false
                 };
 
-                eprintln!("[{}/{}] importing {}", idx + 1, total, csv.display());
-
                 if !replace_this_file {
-                    if let Some(conn) = precheck_conn.as_ref() {
+                    if let Some(tracked) = tracked_source_paths.as_ref() {
                         let source_path = normalize_source_path(&csv)?;
-                        if source_file_exists(conn, &source_path)? {
-                            eprintln!("[{}/{}] skipped", idx + 1, total);
+                        if tracked.contains(&source_path) {
+                            if skipped.len() < 5 || (idx + 1) % 500 == 0 || idx + 1 == total {
+                                eprintln!("[{}/{}] skipped {}", idx + 1, total, csv.display());
+                            }
                             skipped.push(json!({
                                 "file": csv.display().to_string(),
                                 "replace_symbol_before_import": replace_this_file,
@@ -209,6 +210,8 @@ fn main() -> Result<()> {
                         }
                     }
                 }
+
+                eprintln!("[{}/{}] importing {}", idx + 1, total, csv.display());
 
                 match import_ticks_csv_to_sqlite(ImportConfig {
                     csv_path: csv.clone(),
@@ -651,6 +654,13 @@ fn max_bar_id_for_symbol(conn: &Connection, symbol: &str) -> Result<i64> {
     )?;
 
     max_bar_id.ok_or_else(|| anyhow!("symbol {} has no kline_1m rows", symbol))
+}
+
+fn load_tracked_source_paths(conn: &Connection) -> Result<HashSet<String>> {
+    let mut stmt = conn.prepare("SELECT DISTINCT source_path FROM source_files")?;
+    let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+    rows.collect::<std::result::Result<HashSet<_>, _>>()
+        .map_err(Into::into)
 }
 
 fn open_existing_db(path: &Path) -> Result<Connection> {
