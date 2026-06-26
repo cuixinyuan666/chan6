@@ -1,14 +1,5 @@
 use super::model::{ChanFx, ChanFxKind, ChanMergedBar};
 
-/// Detect top/bottom fractals from inclusion-processed merged bars.
-///
-/// Strict rule after inclusion handling:
-/// - top FX: center.high > left.high && center.high > right.high
-///           && center.low > left.low && center.low > right.low
-/// - bottom FX: center.low < left.low && center.low < right.low
-///              && center.high < left.high && center.high < right.high
-///
-/// Output anchors always use `bar_id + price`.
 pub fn detect_fxs(merged_bars: &[ChanMergedBar]) -> Vec<ChanFx> {
     if merged_bars.len() < 3 {
         return Vec::new();
@@ -25,8 +16,8 @@ pub fn detect_fxs(merged_bars: &[ChanMergedBar]) -> Vec<ChanFx> {
         };
 
         let (bar_id, price) = match kind {
-            ChanFxKind::Top => (center.high_bar_id, center.high),
-            ChanFxKind::Bottom => (center.low_bar_id, center.low),
+            ChanFxKind::Top => (center.calc_high_bar_id, center.calc_high),
+            ChanFxKind::Bottom => (center.calc_low_bar_id, center.calc_low),
         };
 
         fxs.push(ChanFx {
@@ -60,17 +51,17 @@ pub fn classify_fx(
 }
 
 pub fn is_top_fx(left: &ChanMergedBar, center: &ChanMergedBar, right: &ChanMergedBar) -> bool {
-    center.high > left.high
-        && center.high > right.high
-        && center.low > left.low
-        && center.low > right.low
+    center.calc_high > left.calc_high
+        && center.calc_high > right.calc_high
+        && center.calc_low > left.calc_low
+        && center.calc_low > right.calc_low
 }
 
 pub fn is_bottom_fx(left: &ChanMergedBar, center: &ChanMergedBar, right: &ChanMergedBar) -> bool {
-    center.low < left.low
-        && center.low < right.low
-        && center.high < left.high
-        && center.high < right.high
+    center.calc_low < left.calc_low
+        && center.calc_low < right.calc_low
+        && center.calc_high < left.calc_high
+        && center.calc_high < right.calc_high
 }
 
 #[cfg(test)]
@@ -81,7 +72,6 @@ mod tests {
     #[test]
     fn fewer_than_three_merged_bars_have_no_fx() {
         let merged = vec![merged_bar(0, 1, 10.0, 8.0), merged_bar(1, 2, 11.0, 9.0)];
-
         assert!(detect_fxs(&merged).is_empty());
     }
 
@@ -92,9 +82,7 @@ mod tests {
             merged_bar(1, 2, 12.0, 10.0),
             merged_bar(2, 3, 11.0, 9.0),
         ];
-
         let fxs = detect_fxs(&merged);
-
         assert_eq!(fxs.len(), 1);
         assert_eq!(fxs[0].kind, ChanFxKind::Top);
         assert_eq!(fxs[0].merged_index, 1);
@@ -111,9 +99,7 @@ mod tests {
             merged_bar(1, 2, 11.0, 8.0),
             merged_bar(2, 3, 13.0, 9.0),
         ];
-
         let fxs = detect_fxs(&merged);
-
         assert_eq!(fxs.len(), 1);
         assert_eq!(fxs[0].kind, ChanFxKind::Bottom);
         assert_eq!(fxs[0].merged_index, 1);
@@ -135,7 +121,6 @@ mod tests {
             merged_bar(1, 2, 10.0, 8.0),
             merged_bar(2, 3, 12.0, 9.0),
         ];
-
         assert!(detect_fxs(&equal_high).is_empty());
         assert!(detect_fxs(&equal_low).is_empty());
     }
@@ -149,9 +134,7 @@ mod tests {
             merged_bar(3, 4, 13.0, 9.0),
             merged_bar(4, 5, 12.0, 8.0),
         ];
-
         let fxs = detect_fxs(&merged);
-
         assert_eq!(fxs.len(), 3);
         assert_eq!(fxs[0].kind, ChanFxKind::Top);
         assert_eq!(fxs[1].kind, ChanFxKind::Bottom);
@@ -173,10 +156,7 @@ mod tests {
         let bottom = merged_bar(1, 2, 11.0, 8.0);
         let right = merged_bar(2, 3, 13.0, 9.0);
         assert!(is_bottom_fx(&left, &bottom, &right));
-        assert_eq!(
-            classify_fx(&left, &bottom, &right),
-            Some(ChanFxKind::Bottom)
-        );
+        assert_eq!(classify_fx(&left, &bottom, &right), Some(ChanFxKind::Bottom));
     }
 
     fn merged_bar(index: usize, bar_id: i64, high: f64, low: f64) -> ChanMergedBar {
@@ -187,6 +167,8 @@ mod tests {
             end_bar_id: bar_id,
             high_bar_id: bar_id,
             low_bar_id: bar_id,
+            calc_high_bar_id: bar_id,
+            calc_low_bar_id: bar_id,
             trading_day: 20260511,
             minute: 930 + bar_id as i32,
             start_ts: bar_id * 60,
@@ -194,6 +176,8 @@ mod tests {
             open: low,
             high,
             low,
+            calc_high: high,
+            calc_low: low,
             close: high,
             volume: 100.0,
             amount: 1000.0,
