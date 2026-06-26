@@ -3,6 +3,7 @@ pub mod model;
 pub mod processor;
 pub mod session;
 pub mod storage;
+pub mod tdx_reader;
 pub mod text_reader;
 
 pub use csv_reader::{read_ticks_from_csv, TickCsvReadOptions};
