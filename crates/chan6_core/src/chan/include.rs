@@ -5,7 +5,9 @@ use super::model::{ChanBar, ChanDirection, ChanMergedBar};
 /// Business rule:
 /// - calculation is Rust-authoritative;
 /// - all output anchors remain `bar_id + price`;
-/// - inclusion is processed before FX/BI detection.
+/// - inclusion is processed before FX/BI detection;
+/// - `high/low` are the raw visual envelope;
+/// - `calc_high/calc_low` are hichan-style contracted values used by FX/BI.
 pub fn merge_included_bars(bars: &[ChanBar]) -> Vec<ChanMergedBar> {
     let mut merged: Vec<ChanMergedBar> = Vec::new();
 
@@ -36,8 +38,8 @@ pub fn merge_included_bars(bars: &[ChanBar]) -> Vec<ChanMergedBar> {
 }
 
 pub fn has_include_relation(left: &ChanMergedBar, right: &ChanMergedBar) -> bool {
-    contains_price_range(left.high, left.low, right.high, right.low)
-        || contains_price_range(right.high, right.low, left.high, left.low)
+    contains_price_range(left.calc_high, left.calc_low, right.calc_high, right.calc_low)
+        || contains_price_range(right.calc_high, right.calc_low, left.calc_high, left.calc_low)
 }
 
 fn contains_price_range(outer_high: f64, outer_low: f64, inner_high: f64, inner_low: f64) -> bool {
@@ -64,9 +66,9 @@ fn infer_merge_direction(merged: &[ChanMergedBar], next: &ChanMergedBar) -> Chan
 }
 
 fn direction_between_ranges(left: &ChanMergedBar, right: &ChanMergedBar) -> ChanDirection {
-    if right.high > left.high && right.low > left.low {
+    if right.calc_high > left.calc_high && right.calc_low > left.calc_low {
         ChanDirection::Up
-    } else if right.high < left.high && right.low < left.low {
+    } else if right.calc_high < left.calc_high && right.calc_low < left.calc_low {
         ChanDirection::Down
     } else {
         ChanDirection::Unknown
@@ -84,13 +86,16 @@ fn merge_pair(
         direction => direction,
     };
 
-    let (high, high_bar_id) = match effective_direction {
-        ChanDirection::Down => choose_lower_high(left, right),
-        ChanDirection::Up | ChanDirection::Unknown => choose_higher_high(left, right),
+    let (high, high_bar_id) = choose_raw_higher_high(left, right);
+    let (low, low_bar_id) = choose_raw_lower_low(left, right);
+
+    let (calc_high, calc_high_bar_id) = match effective_direction {
+        ChanDirection::Down => choose_calc_lower_high(left, right),
+        ChanDirection::Up | ChanDirection::Unknown => choose_calc_higher_high(left, right),
     };
-    let (low, low_bar_id) = match effective_direction {
-        ChanDirection::Down => choose_lower_low(left, right),
-        ChanDirection::Up | ChanDirection::Unknown => choose_higher_low(left, right),
+    let (calc_low, calc_low_bar_id) = match effective_direction {
+        ChanDirection::Down => choose_calc_lower_low(left, right),
+        ChanDirection::Up | ChanDirection::Unknown => choose_calc_higher_low(left, right),
     };
 
     ChanMergedBar {
@@ -100,6 +105,8 @@ fn merge_pair(
         end_bar_id: right.end_bar_id,
         high_bar_id,
         low_bar_id,
+        calc_high_bar_id,
+        calc_low_bar_id,
         trading_day: right.trading_day,
         minute: right.minute,
         start_ts: left.start_ts,
@@ -107,6 +114,8 @@ fn merge_pair(
         open: left.open,
         high,
         low,
+        calc_high,
+        calc_low,
         close: right.close,
         volume: left.volume + right.volume,
         amount: left.amount + right.amount,
@@ -114,7 +123,7 @@ fn merge_pair(
     }
 }
 
-fn choose_higher_high(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
+fn choose_raw_higher_high(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
     if right.high > left.high {
         (right.high, right.high_bar_id)
     } else {
@@ -122,27 +131,43 @@ fn choose_higher_high(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64)
     }
 }
 
-fn choose_lower_high(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
-    if right.high < left.high {
-        (right.high, right.high_bar_id)
-    } else {
-        (left.high, left.high_bar_id)
-    }
-}
-
-fn choose_higher_low(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
-    if right.low > left.low {
-        (right.low, right.low_bar_id)
-    } else {
-        (left.low, left.low_bar_id)
-    }
-}
-
-fn choose_lower_low(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
+fn choose_raw_lower_low(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
     if right.low < left.low {
         (right.low, right.low_bar_id)
     } else {
         (left.low, left.low_bar_id)
+    }
+}
+
+fn choose_calc_higher_high(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
+    if right.calc_high >= left.calc_high {
+        (right.calc_high, right.calc_high_bar_id)
+    } else {
+        (left.calc_high, left.calc_high_bar_id)
+    }
+}
+
+fn choose_calc_lower_high(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
+    if right.calc_high <= left.calc_high {
+        (right.calc_high, right.calc_high_bar_id)
+    } else {
+        (left.calc_high, left.calc_high_bar_id)
+    }
+}
+
+fn choose_calc_higher_low(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
+    if right.calc_low >= left.calc_low {
+        (right.calc_low, right.calc_low_bar_id)
+    } else {
+        (left.calc_low, left.calc_low_bar_id)
+    }
+}
+
+fn choose_calc_lower_low(left: &ChanMergedBar, right: &ChanMergedBar) -> (f64, i64) {
+    if right.calc_low <= left.calc_low {
+        (right.calc_low, right.calc_low_bar_id)
+    } else {
+        (left.calc_low, left.calc_low_bar_id)
     }
 }
 
@@ -182,9 +207,13 @@ mod tests {
         assert_eq!(merged[1].start_bar_id, 2);
         assert_eq!(merged[1].end_bar_id, 3);
         assert_eq!(merged[1].high, 11.0);
-        assert_eq!(merged[1].low, 9.5);
+        assert_eq!(merged[1].low, 9.0);
+        assert_eq!(merged[1].calc_high, 11.0);
+        assert_eq!(merged[1].calc_low, 9.5);
         assert_eq!(merged[1].high_bar_id, 2);
-        assert_eq!(merged[1].low_bar_id, 3);
+        assert_eq!(merged[1].low_bar_id, 2);
+        assert_eq!(merged[1].calc_high_bar_id, 2);
+        assert_eq!(merged[1].calc_low_bar_id, 3);
     }
 
     #[test]
@@ -200,10 +229,14 @@ mod tests {
         assert_eq!(merged.len(), 2);
         assert_eq!(merged[1].start_bar_id, 2);
         assert_eq!(merged[1].end_bar_id, 3);
-        assert_eq!(merged[1].high, 10.5);
+        assert_eq!(merged[1].high, 11.0);
         assert_eq!(merged[1].low, 9.0);
-        assert_eq!(merged[1].high_bar_id, 3);
+        assert_eq!(merged[1].calc_high, 10.5);
+        assert_eq!(merged[1].calc_low, 9.0);
+        assert_eq!(merged[1].high_bar_id, 2);
         assert_eq!(merged[1].low_bar_id, 2);
+        assert_eq!(merged[1].calc_high_bar_id, 3);
+        assert_eq!(merged[1].calc_low_bar_id, 2);
     }
 
     #[test]
@@ -220,9 +253,13 @@ mod tests {
         assert_eq!(merged[1].start_bar_id, 2);
         assert_eq!(merged[1].end_bar_id, 3);
         assert_eq!(merged[1].high, 12.0);
-        assert_eq!(merged[1].low, 9.0);
+        assert_eq!(merged[1].low, 8.5);
+        assert_eq!(merged[1].calc_high, 12.0);
+        assert_eq!(merged[1].calc_low, 9.0);
         assert_eq!(merged[1].high_bar_id, 3);
-        assert_eq!(merged[1].low_bar_id, 2);
+        assert_eq!(merged[1].low_bar_id, 3);
+        assert_eq!(merged[1].calc_high_bar_id, 3);
+        assert_eq!(merged[1].calc_low_bar_id, 2);
     }
 
     #[test]
