@@ -12,6 +12,7 @@
 
 pub mod bi;
 pub mod config;
+pub mod engine;
 pub mod fx;
 pub mod include;
 pub mod model;
@@ -19,6 +20,10 @@ pub mod standard;
 
 pub use bi::{build_bis, build_bis_with_min_span, normalize_fxs_for_bi};
 pub use config::{ChanBiMode, ChanConfig, ChanFxMode, ChanIncludeMode, ChanSegmentN};
+pub use engine::{
+    analyze_chan_basic, analyze_chan_basic_with_config, ChanBasicMeta, ChanBasicSnapshot,
+    CHAN_BASIC_SCHEMA_VERSION,
+};
 pub use include::{has_include_relation, merge_included_bars};
 pub use model::{
     ChanBar, ChanBi, ChanDirection, ChanFx, ChanFxKind, ChanMergedBar, ChanRhythmHit,
