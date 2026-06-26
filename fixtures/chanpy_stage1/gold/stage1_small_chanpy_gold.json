@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "meta": {
+    "engine": "chan.py",
+    "symbol": "stage1_small.LOCAL",
+    "freq": "DAILY",
+    "adjust": "QFQ",
+    "mode": "once",
+    "gold_source": "hichan/chan.py",
+    "generated_by": "tools/generate_chanpy_stage1_gold.py",
+    "bars_count": 9,
+    "merged_bars_count": 6,
+    "fx_count": 2,
+    "bi_count": 0
+  },
+  "merged_bars": [
+    {"index": 0, "start_raw_index": 0, "end_raw_index": 0, "high_raw_index": 0, "low_raw_index": 0, "open": 10.0, "high": 10.0, "low": 8.0, "close": 9.0},
+    {"index": 1, "start_raw_index": 1, "end_raw_index": 1, "high_raw_index": 1, "low_raw_index": 1, "open": 9.0, "high": 12.0, "low": 9.0, "close": 11.0},
+    {"index": 2, "start_raw_index": 2, "end_raw_index": 2, "high_raw_index": 2, "low_raw_index": 2, "open": 11.0, "high": 11.0, "low": 7.0, "close": 8.0},
+    {"index": 3, "start_raw_index": 3, "end_raw_index": 4, "high_raw_index": 3, "low_raw_index": 3, "open": 8.0, "high": 13.0, "low": 8.0, "close": 9.0},
+    {"index": 4, "start_raw_index": 5, "end_raw_index": 6, "high_raw_index": 5, "low_raw_index": 5, "open": 9.0, "high": 14.0, "low": 9.0, "close": 10.0},
+    {"index": 5, "start_raw_index": 7, "end_raw_index": 8, "high_raw_index": 7, "low_raw_index": 7, "open": 10.0, "high": 15.0, "low": 10.0, "close": 11.0}
+  ],
+  "fx": [
+    {"index": 1, "raw_index": 1, "type": "top", "price": 12.0},
+    {"index": 2, "raw_index": 2, "type": "bottom", "price": 7.0}
+  ],
+  "bi": []
+}
