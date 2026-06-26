@@ -15,10 +15,12 @@ class ChartShell extends StatefulWidget {
     super.key,
     required this.initialState,
     this.onHoverBarChanged,
+    this.drawLineMode = false,
   });
 
   final ChartState initialState;
   final ValueChanged<KLinePoint>? onHoverBarChanged;
+  final bool drawLineMode;
 
   @override
   State<ChartShell> createState() => _ChartShellState();
@@ -27,6 +29,7 @@ class ChartShell extends StatefulWidget {
 class _ChartShellState extends State<ChartShell> {
   late ChartState _state = widget.initialState;
   int? _lastHoverBarId;
+  ChartAnchor? _pendingLineStart;
 
   final LayerManager _layerManager = LayerManager(
     <ChartLayer>[
@@ -44,7 +47,12 @@ class _ChartShellState extends State<ChartShell> {
     if (oldWidget.initialState != widget.initialState) {
       _state = widget.initialState.copyWith(
         crosshair: _state.crosshair,
+        drawings: _state.drawings,
       );
+    }
+
+    if (oldWidget.drawLineMode && !widget.drawLineMode) {
+      _pendingLineStart = null;
     }
   }
 
@@ -82,10 +90,85 @@ class _ChartShellState extends State<ChartShell> {
       );
     });
 
-    if (_lastHoverBarId != bar.barId) {
+    if (!widget.drawLineMode && _lastHoverBarId != bar.barId) {
       _lastHoverBarId = bar.barId;
       widget.onHoverBarChanged?.call(bar);
     }
+  }
+
+  void _handlePointerDown(
+    PointerDownEvent event,
+    CoordinateSystem coordinateSystem,
+  ) {
+    if (!widget.drawLineMode) {
+      return;
+    }
+
+    if (event.buttons == kSecondaryMouseButton) {
+      setState(() {
+        _pendingLineStart = null;
+      });
+      return;
+    }
+
+    if (event.buttons != kPrimaryMouseButton) {
+      return;
+    }
+
+    final anchor = _buildAnchorFromLocalPosition(
+      event.localPosition,
+      coordinateSystem,
+    );
+
+    if (anchor == null) {
+      return;
+    }
+
+    final start = _pendingLineStart;
+
+    if (start == null) {
+      setState(() {
+        _pendingLineStart = anchor;
+      });
+      return;
+    }
+
+    final drawing = DrawingObject.line(
+      id: 'line_${DateTime.now().microsecondsSinceEpoch}',
+      start: start,
+      end: anchor,
+    );
+
+    setState(() {
+      _pendingLineStart = null;
+      _state = _state.copyWith(
+        drawings: <DrawingObject>[
+          ..._state.drawings,
+          drawing,
+        ],
+      );
+    });
+  }
+
+  ChartAnchor? _buildAnchorFromLocalPosition(
+    Offset local,
+    CoordinateSystem coordinateSystem,
+  ) {
+    if (!coordinateSystem.chartRect.contains(local) || _state.kline.isEmpty) {
+      return null;
+    }
+
+    final index = coordinateSystem.xToIndex(local.dx);
+    if (index < 0 || index >= _state.kline.length) {
+      return null;
+    }
+
+    final bar = _state.kline[index];
+
+    return ChartAnchor(
+      barId: bar.barId,
+      price: coordinateSystem.yToPrice(local.dy),
+    );
   }
 
   void _handleExit(PointerExitEvent event) {
@@ -130,12 +213,20 @@ class _ChartShellState extends State<ChartShell> {
           return MouseRegion(
             onHover: (event) => _handleHover(event, coordinateSystem),
             onExit: _handleExit,
-            child: CustomPaint(
-              size: size,
-              painter: _ChartPainter(
-                state: _state,
-                coordinateSystem: coordinateSystem,
-                layerManager: _layerManager,
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (event) => _handlePointerDown(
+                event,
+                coordinateSystem,
+              ),
+              child: CustomPaint(
+                size: size,
+                painter: _ChartPainter(
+                  state: _state,
+                  coordinateSystem: coordinateSystem,
+                  layerManager: _layerManager,
+                  pendingLineStart: _pendingLineStart,
+                ),
               ),
             ),
           );
@@ -150,11 +241,13 @@ class _ChartPainter extends CustomPainter {
     required this.state,
     required this.coordinateSystem,
     required this.layerManager,
+    required this.pendingLineStart,
   });
 
   final ChartState state;
   final CoordinateSystem coordinateSystem;
   final LayerManager layerManager;
+  final ChartAnchor? pendingLineStart;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -190,11 +283,54 @@ class _ChartPainter extends CustomPainter {
       state,
       coordinateSystem,
     );
+
+    _paintPendingLine(canvas);
+  }
+
+  void _paintPendingLine(Canvas canvas) {
+    final start = pendingLineStart;
+    if (start == null || state.kline.isEmpty) {
+      return;
+    }
+
+    final startIndex = _barIdToIndex(start.barId);
+    if (startIndex == null) {
+      return;
+    }
+
+    final startOffset = Offset(
+      coordinateSystem.indexToX(startIndex),
+      coordinateSystem.priceToY(start.price),
+    );
+
+    final paint = Paint()
+      ..color = const Color(0xffffcc80)
+      ..strokeWidth = 1.5;
+
+    canvas.drawCircle(startOffset, 4, paint);
+
+    if (state.crosshair.visible) {
+      canvas.drawLine(
+        startOffset,
+        Offset(state.crosshair.x, state.crosshair.y),
+        paint,
+      );
+    }
+  }
+
+  int? _barIdToIndex(int barId) {
+    for (var i = 0; i < state.kline.length; i++) {
+      if (state.kline[i].barId == barId) {
+        return i;
+      }
+    }
+    return null;
   }
 
   @override
   bool shouldRepaint(covariant _ChartPainter oldDelegate) {
     return oldDelegate.state != state ||
+        oldDelegate.pendingLineStart != pendingLineStart ||
         oldDelegate.coordinateSystem.chartRect != coordinateSystem.chartRect ||
         oldDelegate.coordinateSystem.chipRect != coordinateSystem.chipRect;
   }

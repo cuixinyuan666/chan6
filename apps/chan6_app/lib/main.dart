@@ -49,6 +49,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
   int? _loadedChipBarId;
   int _requestSeq = 0;
   bool _loadingChip = false;
+  bool _drawLineMode = false;
 
   @override
   void initState() {
@@ -207,7 +208,24 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
         children: [
           ChartShell(
             initialState: state,
-            onHoverBarChanged: _handleHoverBarChanged,
+            onHoverBarChanged:
+                _drawLineMode ? null : _handleHoverBarChanged,
+            drawLineMode: _drawLineMode,
+          ),
+          Positioned(
+            right: 12,
+            top: 12,
+            child: _ToolBar(
+              drawLineMode: _drawLineMode,
+              onToggleDrawLine: () {
+                setState(() {
+                  _drawLineMode = !_drawLineMode;
+                  _message = _drawLineMode
+                      ? '画线模式：左键点击两个位置生成趋势线；右键取消当前起点'
+                      : '已退出画线模式';
+                });
+              },
+            ),
           ),
           Positioned(
             left: 12,
@@ -217,9 +235,40 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
               source: _source,
               message: _message,
               loadingChip: _loadingChip,
+              drawLineMode: _drawLineMode,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ToolBar extends StatelessWidget {
+  const _ToolBar({
+    required this.drawLineMode,
+    required this.onToggleDrawLine,
+  });
+
+  final bool drawLineMode;
+  final VoidCallback onToggleDrawLine;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: FilledButton.tonal(
+          onPressed: onToggleDrawLine,
+          child: Text(drawLineMode ? '退出画线' : '画线'),
+        ),
       ),
     );
   }
@@ -230,14 +279,18 @@ class _StatusBar extends StatelessWidget {
     required this.source,
     required this.message,
     required this.loadingChip,
+    required this.drawLineMode,
   });
 
   final String source;
   final String message;
   final bool loadingChip;
+  final bool drawLineMode;
 
   @override
   Widget build(BuildContext context) {
+    final modeText = drawLineMode ? ' | 画线模式开启' : '';
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.55),
@@ -260,7 +313,7 @@ class _StatusBar extends StatelessWidget {
             ],
             Expanded(
               child: Text(
-                'source=$source | $message',
+                'source=$source | $message$modeText',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
