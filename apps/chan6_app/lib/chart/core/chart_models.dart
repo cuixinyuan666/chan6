@@ -50,6 +50,17 @@ class ChartMeta {
     required this.chipBarId,
     required this.chipTruncated,
     required this.chipTop,
+    this.targetBarId,
+    this.targetIndex,
+    this.klineCount,
+    this.offset,
+    this.limit,
+    this.day,
+    this.minute,
+    this.before,
+    this.after,
+    this.windowOffset,
+    this.windowLimit,
   });
 
   final int schemaVersion;
@@ -60,6 +71,18 @@ class ChartMeta {
   final int? chipBarId;
   final bool chipTruncated;
   final int chipTop;
+
+  final int? targetBarId;
+  final int? targetIndex;
+  final int? klineCount;
+  final int? offset;
+  final int? limit;
+  final int? day;
+  final int? minute;
+  final int? before;
+  final int? after;
+  final int? windowOffset;
+  final int? windowLimit;
 }
 
 class ChartViewport {

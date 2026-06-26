@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'chart/chart_shell.dart';
-import 'chart/core/chart_models.dart';
+import 'chart/data/chart_query_parser.dart';
+import 'chart/data/chart_query_sample.dart';
 
 void main() {
   runApp(const Chan6App());
@@ -28,7 +29,7 @@ class ChartDemoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ChartShell(
-        initialState: ChartState.demo(),
+        initialState: ChartQueryParser.parseJsonString(chartQueryAtSampleJson),
       ),
     );
   }
