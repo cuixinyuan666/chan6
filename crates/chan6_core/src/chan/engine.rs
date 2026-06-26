@@ -81,7 +81,7 @@ pub fn analyze_chan_basic_with_config(
 mod tests {
     use super::{analyze_chan_basic, analyze_chan_basic_with_config, CHAN_BASIC_SCHEMA_VERSION};
     use crate::chan::config::ChanConfig;
-    use crate::chan::model::ChanFxKind;
+    use crate::chan::model::{ChanDirection, ChanFxKind};
     use crate::model::KLine1m;
     use serde::Deserialize;
 
@@ -159,14 +159,29 @@ mod tests {
     }
 
     #[test]
-    fn chanpy_stage1_gold_matches_rust_pipeline() {
-        let klines = parse_stage1_csv(include_str!(
-            "../../../../fixtures/chanpy_stage1/input/stage1_small.csv"
-        ));
-        let gold: Stage1Gold = serde_json::from_str(include_str!(
-            "../../../../fixtures/chanpy_stage1/gold/stage1_small_chanpy_gold.json"
-        ))
-        .expect("stage1 chan.py gold json must parse");
+    fn chanpy_stage1_small_gold_matches_rust_pipeline() {
+        assert_chanpy_gold_matches_rust_pipeline(
+            include_str!("../../../../fixtures/chanpy_stage1/input/stage1_small.csv"),
+            include_str!(
+                "../../../../fixtures/chanpy_stage1/gold/stage1_small_chanpy_gold.json"
+            ),
+        );
+    }
+
+    #[test]
+    fn chanpy_stage1_bi_candidate_gold_matches_rust_pipeline() {
+        assert_chanpy_gold_matches_rust_pipeline(
+            include_str!("../../../../fixtures/chanpy_stage1/input/stage1_bi_candidate.csv"),
+            include_str!(
+                "../../../../fixtures/chanpy_stage1/gold/stage1_bi_candidate_chanpy_gold.json"
+            ),
+        );
+    }
+
+    fn assert_chanpy_gold_matches_rust_pipeline(csv_text: &str, gold_text: &str) {
+        let klines = parse_stage1_csv(csv_text);
+        let gold: Stage1Gold =
+            serde_json::from_str(gold_text).expect("stage1 chan.py gold json must parse");
 
         let snapshot = analyze_chan_basic(&klines);
 
@@ -199,6 +214,20 @@ mod tests {
                 "top" => assert_eq!(actual.kind, ChanFxKind::Top),
                 "bottom" => assert_eq!(actual.kind, ChanFxKind::Bottom),
                 other => panic!("unexpected gold fx type: {other}"),
+            }
+        }
+
+        for (actual, expected) in snapshot.bi.iter().zip(&gold.bi) {
+            assert_eq!(actual.index, expected.index);
+            assert_eq!(actual.start_bar_id, expected.start_raw_index);
+            assert_eq!(actual.end_bar_id, expected.end_raw_index);
+            assert_close(actual.start_price, expected.start_price);
+            assert_close(actual.end_price, expected.end_price);
+            assert_eq!(actual.confirmed, expected.is_sure);
+            match expected.direction.as_str() {
+                "up" => assert_eq!(actual.direction, ChanDirection::Up),
+                "down" => assert_eq!(actual.direction, ChanDirection::Down),
+                other => panic!("unexpected gold bi direction: {other}"),
             }
         }
     }
@@ -237,7 +266,7 @@ mod tests {
                 let low = open.min(raw_high).min(raw_low).min(close);
                 let volume = parse_f64(parts[5]);
                 KLine1m {
-                    symbol: "stage1_small".to_string(),
+                    symbol: "stage1_fixture".to_string(),
                     bar_id: index as i64,
                     trading_day: parts[0].replace('-', "").parse::<i32>().unwrap(),
                     minute: 0,
@@ -273,7 +302,7 @@ mod tests {
         meta: Stage1GoldMeta,
         merged_bars: Vec<Stage1GoldMergedBar>,
         fx: Vec<Stage1GoldFx>,
-        bi: Vec<serde_json::Value>,
+        bi: Vec<Stage1GoldBi>,
     }
 
     #[allow(dead_code)]
@@ -312,5 +341,16 @@ mod tests {
         #[serde(rename = "type")]
         fx_type: String,
         price: f64,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct Stage1GoldBi {
+        index: usize,
+        start_raw_index: i64,
+        end_raw_index: i64,
+        start_price: f64,
+        end_price: f64,
+        direction: String,
+        is_sure: bool,
     }
 }
