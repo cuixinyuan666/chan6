@@ -15,11 +15,15 @@ class ChartShell extends StatefulWidget {
     super.key,
     required this.initialState,
     this.onHoverBarChanged,
+    this.onPanWindow,
+    this.onZoomWindow,
     this.drawLineMode = false,
   });
 
   final ChartState initialState;
   final ValueChanged<KLinePoint>? onHoverBarChanged;
+  final ValueChanged<int>? onPanWindow;
+  final ValueChanged<bool>? onZoomWindow;
   final bool drawLineMode;
 
   @override
@@ -30,6 +34,7 @@ class _ChartShellState extends State<ChartShell> {
   late ChartState _state = widget.initialState;
   int? _lastHoverBarId;
   ChartAnchor? _pendingLineStart;
+  Offset? _panStartLocal;
 
   final LayerManager _layerManager = LayerManager(
     <ChartLayer>[
@@ -100,10 +105,60 @@ class _ChartShellState extends State<ChartShell> {
     PointerDownEvent event,
     CoordinateSystem coordinateSystem,
   ) {
-    if (!widget.drawLineMode) {
+    if (widget.drawLineMode) {
+      _handleDrawLinePointerDown(event, coordinateSystem);
       return;
     }
 
+    if (event.buttons == kPrimaryMouseButton &&
+        coordinateSystem.chartRect.contains(event.localPosition)) {
+      _panStartLocal = event.localPosition;
+    }
+  }
+
+  void _handlePointerUp(
+    PointerUpEvent event,
+    CoordinateSystem coordinateSystem,
+  ) {
+    if (widget.drawLineMode) {
+      return;
+    }
+
+    final start = _panStartLocal;
+    _panStartLocal = null;
+
+    if (start == null || _state.kline.isEmpty) {
+      return;
+    }
+
+    final dx = event.localPosition.dx - start.dx;
+    final slotWidth = coordinateSystem.chartRect.width / _state.kline.length;
+    final deltaBars = (-dx / slotWidth).round();
+
+    if (deltaBars.abs() >= 5) {
+      widget.onPanWindow?.call(deltaBars);
+    }
+  }
+
+  void _handlePointerCancel(PointerCancelEvent event) {
+    _panStartLocal = null;
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (widget.drawLineMode) {
+      return;
+    }
+
+    if (event is PointerScrollEvent) {
+      final zoomIn = event.scrollDelta.dy < 0;
+      widget.onZoomWindow?.call(zoomIn);
+    }
+  }
+
+  void _handleDrawLinePointerDown(
+    PointerDownEvent event,
+    CoordinateSystem coordinateSystem,
+  ) {
     if (event.buttons == kSecondaryMouseButton) {
       setState(() {
         _pendingLineStart = null;
@@ -173,6 +228,7 @@ class _ChartShellState extends State<ChartShell> {
 
   void _handleExit(PointerExitEvent event) {
     _lastHoverBarId = null;
+    _panStartLocal = null;
     setState(() {
       _state = _state.copyWith(crosshair: CrosshairState.hidden);
     });
@@ -219,6 +275,12 @@ class _ChartShellState extends State<ChartShell> {
                 event,
                 coordinateSystem,
               ),
+              onPointerUp: (event) => _handlePointerUp(
+                event,
+                coordinateSystem,
+              ),
+              onPointerCancel: _handlePointerCancel,
+              onPointerSignal: _handlePointerSignal,
               child: CustomPaint(
                 size: size,
                 painter: _ChartPainter(

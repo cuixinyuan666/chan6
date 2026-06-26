@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -45,10 +46,18 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
   String _message = '正在加载初始图表...';
 
   Timer? _hoverDebounce;
+  Timer? _windowDebounce;
+
   int? _pendingBarId;
   int? _loadedChipBarId;
   int _requestSeq = 0;
+  int _windowSeq = 0;
+
+  int _windowOffset = 1126500;
+  int _windowLimit = 160;
+
   bool _loadingChip = false;
+  bool _loadingWindow = false;
   bool _drawLineMode = false;
 
   @override
@@ -60,6 +69,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
   @override
   void dispose() {
     _hoverDebounce?.cancel();
+    _windowDebounce?.cancel();
     super.dispose();
   }
 
@@ -87,24 +97,12 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
       }
 
       final cli = CliChartQueryRepository(repoRoot: repoRoot);
-      final state = await cli.queryChart(
-        dbPath: _dbPath,
-        symbol: _symbol,
-        offset: 1126500,
-        limit: 160,
-        top: 0,
+      _cli = cli;
+      await _loadKlineWindow(
+        offset: _windowOffset,
+        limit: _windowLimit,
+        reason: '初始加载',
       );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _cli = cli;
-        _state = state;
-        _source = 'chan6_cli';
-        _message = '已加载 chan6_cli query-chart 真实数据；移动鼠标可联动 query-chart-at 刷新筹码';
-      });
     } catch (error) {
       final state = await _fallback.queryChart(
         dbPath: _dbPath,
@@ -123,9 +121,140 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
     }
   }
 
-  void _handleHoverBarChanged(KLinePoint bar) {
+  Future<void> _loadKlineWindow({
+    required int offset,
+    required int limit,
+    required String reason,
+  }) async {
     final cli = _cli;
     if (cli == null) {
+      return;
+    }
+
+    final safeOffset = math.max(0, offset);
+    final safeLimit = limit.clamp(40, 1200).toInt();
+    final seq = ++_windowSeq;
+
+    setState(() {
+      _loadingWindow = true;
+      _windowOffset = safeOffset;
+      _windowLimit = safeLimit;
+      _source = 'chan6_cli/query-chart';
+      _message =
+          '$reason：正在加载窗口 offset=$_windowOffset, limit=$_windowLimit';
+    });
+
+    try {
+      final state = await cli.queryChart(
+        dbPath: _dbPath,
+        symbol: _symbol,
+        offset: safeOffset,
+        limit: safeLimit,
+        top: 0,
+      );
+
+      if (!mounted || seq != _windowSeq) {
+        return;
+      }
+
+      setState(() {
+        _state = state;
+        _loadingWindow = false;
+        _loadingChip = false;
+        _pendingBarId = null;
+        _loadedChipBarId = state.meta.chipBarId;
+        _source = 'chan6_cli/query-chart';
+        _message =
+            '$reason：已加载K线窗口 offset=$_windowOffset, limit=$_windowLimit, kline_count=${state.kline.length}, chip_count=${state.chip.length}';
+      });
+    } catch (error) {
+      if (!mounted || seq != _windowSeq) {
+        return;
+      }
+
+      setState(() {
+        _loadingWindow = false;
+        _message = '$reason：query-chart 失败，保留当前窗口：$error';
+      });
+    }
+  }
+
+  void _scheduleKlineWindow({
+    required int offset,
+    required int limit,
+    required String reason,
+  }) {
+    _windowDebounce?.cancel();
+    _windowDebounce = Timer(
+      const Duration(milliseconds: 180),
+      () => _loadKlineWindow(
+        offset: offset,
+        limit: limit,
+        reason: reason,
+      ),
+    );
+  }
+
+  void _handlePanWindow(int deltaBars) {
+    if (_drawLineMode || _cli == null || deltaBars == 0) {
+      return;
+    }
+
+    final nextOffset = math.max(0, _windowOffset + deltaBars);
+
+    if (nextOffset == _windowOffset) {
+      return;
+    }
+
+    _scheduleKlineWindow(
+      offset: nextOffset,
+      limit: _windowLimit,
+      reason: '平移窗口 delta=$deltaBars',
+    );
+  }
+
+  void _handleZoomWindow(bool zoomIn) {
+    if (_drawLineMode || _cli == null) {
+      return;
+    }
+
+    final center = _windowOffset + _windowLimit ~/ 2;
+    final nextLimit = zoomIn
+        ? math.max(40, (_windowLimit * 0.75).round())
+        : math.min(1200, (_windowLimit * 1.33).round());
+
+    if (nextLimit == _windowLimit) {
+      return;
+    }
+
+    final nextOffset = math.max(0, center - nextLimit ~/ 2);
+
+    _scheduleKlineWindow(
+      offset: nextOffset,
+      limit: nextLimit,
+      reason: zoomIn ? '缩放窗口：放大' : '缩放窗口：缩小',
+    );
+  }
+
+  void _moveWindowByButton(int deltaBars) {
+    _handlePanWindow(deltaBars);
+  }
+
+  void _zoomWindowByButton(bool zoomIn) {
+    _handleZoomWindow(zoomIn);
+  }
+
+  void _reloadWindow() {
+    _scheduleKlineWindow(
+      offset: _windowOffset,
+      limit: _windowLimit,
+      reason: '重载窗口',
+    );
+  }
+
+  void _handleHoverBarChanged(KLinePoint bar) {
+    final cli = _cli;
+    if (cli == null || _loadingWindow) {
       return;
     }
 
@@ -210,6 +339,8 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
             initialState: state,
             onHoverBarChanged:
                 _drawLineMode ? null : _handleHoverBarChanged,
+            onPanWindow: _handlePanWindow,
+            onZoomWindow: _handleZoomWindow,
             drawLineMode: _drawLineMode,
           ),
           Positioned(
@@ -217,6 +348,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
             top: 12,
             child: _ToolBar(
               drawLineMode: _drawLineMode,
+              loadingWindow: _loadingWindow,
               onToggleDrawLine: () {
                 setState(() {
                   _drawLineMode = !_drawLineMode;
@@ -225,6 +357,11 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
                       : '已退出画线模式';
                 });
               },
+              onMoveLeft: () => _moveWindowByButton(-(_windowLimit ~/ 2)),
+              onMoveRight: () => _moveWindowByButton(_windowLimit ~/ 2),
+              onZoomIn: () => _zoomWindowByButton(true),
+              onZoomOut: () => _zoomWindowByButton(false),
+              onReload: _reloadWindow,
             ),
           ),
           Positioned(
@@ -235,7 +372,10 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
               source: _source,
               message: _message,
               loadingChip: _loadingChip,
+              loadingWindow: _loadingWindow,
               drawLineMode: _drawLineMode,
+              windowOffset: _windowOffset,
+              windowLimit: _windowLimit,
             ),
           ),
         ],
@@ -247,11 +387,23 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
 class _ToolBar extends StatelessWidget {
   const _ToolBar({
     required this.drawLineMode,
+    required this.loadingWindow,
     required this.onToggleDrawLine,
+    required this.onMoveLeft,
+    required this.onMoveRight,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onReload,
   });
 
   final bool drawLineMode;
+  final bool loadingWindow;
   final VoidCallback onToggleDrawLine;
+  final VoidCallback onMoveLeft;
+  final VoidCallback onMoveRight;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final VoidCallback onReload;
 
   @override
   Widget build(BuildContext context) {
@@ -265,9 +417,36 @@ class _ToolBar extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(6),
-        child: FilledButton.tonal(
-          onPressed: onToggleDrawLine,
-          child: Text(drawLineMode ? '退出画线' : '画线'),
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          alignment: WrapAlignment.end,
+          children: [
+            FilledButton.tonal(
+              onPressed: loadingWindow ? null : onMoveLeft,
+              child: const Text('左移'),
+            ),
+            FilledButton.tonal(
+              onPressed: loadingWindow ? null : onMoveRight,
+              child: const Text('右移'),
+            ),
+            FilledButton.tonal(
+              onPressed: loadingWindow ? null : onZoomIn,
+              child: const Text('放大'),
+            ),
+            FilledButton.tonal(
+              onPressed: loadingWindow ? null : onZoomOut,
+              child: const Text('缩小'),
+            ),
+            FilledButton.tonal(
+              onPressed: loadingWindow ? null : onReload,
+              child: const Text('重载'),
+            ),
+            FilledButton.tonal(
+              onPressed: onToggleDrawLine,
+              child: Text(drawLineMode ? '退出画线' : '画线'),
+            ),
+          ],
         ),
       ),
     );
@@ -279,17 +458,24 @@ class _StatusBar extends StatelessWidget {
     required this.source,
     required this.message,
     required this.loadingChip,
+    required this.loadingWindow,
     required this.drawLineMode,
+    required this.windowOffset,
+    required this.windowLimit,
   });
 
   final String source;
   final String message;
   final bool loadingChip;
+  final bool loadingWindow;
   final bool drawLineMode;
+  final int windowOffset;
+  final int windowLimit;
 
   @override
   Widget build(BuildContext context) {
     final modeText = drawLineMode ? ' | 画线模式开启' : '';
+    final windowText = ' | offset=$windowOffset limit=$windowLimit';
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -303,7 +489,7 @@ class _StatusBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            if (loadingChip) ...[
+            if (loadingChip || loadingWindow) ...[
               const SizedBox(
                 width: 14,
                 height: 14,
@@ -313,7 +499,7 @@ class _StatusBar extends StatelessWidget {
             ],
             Expanded(
               child: Text(
-                'source=$source | $message$modeText',
+                'source=$source | $message$windowText$modeText',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
