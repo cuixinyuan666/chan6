@@ -1,10 +1,9 @@
 use anyhow::{bail, Result};
-use chan6_core::{
-    import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, storage::open_db, ImportConfig,
-};
+use chan6_core::{import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, storage::open_db, ImportConfig};
 use clap::{Parser, Subcommand};
 use rusqlite::Connection;
 use serde_json::json;
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -18,99 +17,59 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Import one offline tick text file into SQLite cache.
     ImportTick {
-        /// Offline tick text path, such as csv or txt.
         #[arg(long)]
         csv: PathBuf,
-
-        /// SQLite cache path.
         #[arg(long)]
         db: PathBuf,
-
-        /// Symbol used when source file has no symbol/code column.
         #[arg(long)]
         symbol: Option<String>,
-
-        /// Price scale. 1000 means 10.235 -> price_tick 10235.
         #[arg(long, default_value_t = 1000.0)]
         price_scale: f64,
-
-        /// Save one full chip snapshot every N bars.
         #[arg(long, default_value_t = 60)]
         snapshot_interval: i64,
-
-        /// Delete existing rows of imported symbols before writing new data.
         #[arg(long, default_value_t = false)]
         replace: bool,
     },
-
-    /// Import all CSV/TXT files in a directory. The file stem is used as default symbol when source has no symbol column.
     ImportDir {
-        /// Directory containing offline tick text files.
         #[arg(long)]
         dir: PathBuf,
-
-        /// SQLite cache path.
         #[arg(long)]
         db: PathBuf,
-
-        /// Recursively scan subdirectories.
         #[arg(long, default_value_t = false)]
         recursive: bool,
-
-        /// Price scale. 1000 means 10.235 -> price_tick 10235.
         #[arg(long, default_value_t = 1000.0)]
         price_scale: f64,
-
-        /// Save one full chip snapshot every N bars.
         #[arg(long, default_value_t = 60)]
         snapshot_interval: i64,
-
-        /// Delete existing rows of imported symbols before writing new data.
         #[arg(long, default_value_t = false)]
         replace: bool,
     },
-
-    /// List symbols that already exist in the SQLite cache.
     ListSymbols {
         #[arg(long)]
         db: PathBuf,
     },
-
-    /// Show SQLite cache statistics.
     DbStats {
         #[arg(long)]
         db: PathBuf,
     },
-
-    /// Query generated 1m klines.
     QueryKline {
         #[arg(long)]
         db: PathBuf,
-
         #[arg(long)]
         symbol: String,
-
         #[arg(long, default_value_t = 0)]
         offset: i64,
-
         #[arg(long, default_value_t = 100)]
         limit: i64,
     },
-
-    /// Query tick-accumulated chip state at a specific 1m bar.
     QueryChip {
         #[arg(long)]
         db: PathBuf,
-
         #[arg(long)]
         symbol: String,
-
         #[arg(long)]
         bar_id: i64,
-
-        /// Return only top N levels by volume. 0 means all price levels.
         #[arg(long, default_value_t = 0)]
         top: usize,
     },
@@ -120,14 +79,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::ImportTick {
-            csv,
-            db,
-            symbol,
-            price_scale,
-            snapshot_interval,
-            replace,
-        } => {
+        Commands::ImportTick { csv, db, symbol, price_scale, snapshot_interval, replace } => {
             let report = import_ticks_csv_to_sqlite(ImportConfig {
                 csv_path: csv,
                 db_path: db,
@@ -138,14 +90,7 @@ fn main() -> Result<()> {
             })?;
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
-        Commands::ImportDir {
-            dir,
-            db,
-            recursive,
-            price_scale,
-            snapshot_interval,
-            replace,
-        } => {
+        Commands::ImportDir { dir, db, recursive, price_scale, snapshot_interval, replace } => {
             let files = collect_tick_files(&dir, recursive)?;
             if files.is_empty() {
                 bail!("no csv/txt files found in {}", dir.display());
@@ -153,19 +98,30 @@ fn main() -> Result<()> {
 
             let mut reports = Vec::new();
             let mut failed = Vec::new();
+            let mut replaced_symbols = HashSet::new();
 
             for csv in files {
                 let symbol = infer_symbol_from_file_name(&csv);
+                let replace_this_file = if replace {
+                    match symbol.as_deref() {
+                        Some(s) => replaced_symbols.insert(s.to_string()),
+                        None => true,
+                    }
+                } else {
+                    false
+                };
+
                 match import_ticks_csv_to_sqlite(ImportConfig {
                     csv_path: csv.clone(),
                     db_path: db.clone(),
                     default_symbol: symbol,
                     price_scale,
                     snapshot_interval,
-                    replace_symbol: replace,
+                    replace_symbol: replace_this_file,
                 }) {
                     Ok(report) => reports.push(json!({
                         "file": csv.display().to_string(),
+                        "replace_symbol_before_import": replace_this_file,
                         "report": report,
                     })),
                     Err(err) => failed.push(json!({
@@ -196,35 +152,19 @@ fn main() -> Result<()> {
             let stats = db_stats(&conn, &db)?;
             println!("{}", serde_json::to_string_pretty(&stats)?);
         }
-        Commands::QueryKline {
-            db,
-            symbol,
-            offset,
-            limit,
-        } => {
+        Commands::QueryKline { db, symbol, offset, limit } => {
             let conn = open_existing_db(&db)?;
             let rows = query_kline_1m(&conn, &symbol, offset, limit)?;
             println!("{}", serde_json::to_string_pretty(&rows)?);
         }
-        Commands::QueryChip {
-            db,
-            symbol,
-            bar_id,
-            top,
-        } => {
+        Commands::QueryChip { db, symbol, bar_id, top } => {
             let conn = open_existing_db(&db)?;
             let mut levels = query_chip_state(&conn, &symbol, bar_id)?;
-
             if top > 0 {
-                levels.sort_by(|a, b| {
-                    b.volume
-                        .partial_cmp(&a.volume)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                });
+                levels.sort_by(|a, b| b.volume.partial_cmp(&a.volume).unwrap_or(std::cmp::Ordering::Equal));
                 levels.truncate(top);
                 levels.sort_by_key(|x| x.price_tick);
             }
-
             println!("{}", serde_json::to_string_pretty(&levels)?);
         }
     }
@@ -234,10 +174,7 @@ fn main() -> Result<()> {
 
 fn open_existing_db(path: &Path) -> Result<Connection> {
     if !path.exists() {
-        bail!(
-            "database does not exist: {}. Run import-tick or import-dir first.",
-            path.display()
-        );
+        bail!("database does not exist: {}. Run import-tick or import-dir first.", path.display());
     }
     open_db(path)
 }
@@ -249,7 +186,6 @@ fn collect_tick_files(dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
     if !dir.is_dir() {
         bail!("not a directory: {}", dir.display());
     }
-
     let mut out = Vec::new();
     collect_tick_files_inner(dir, recursive, &mut out)?;
     out.sort();
@@ -293,17 +229,13 @@ fn infer_symbol_from_file_name(path: &Path) -> Option<String> {
 fn list_symbols(conn: &Connection) -> Result<Vec<String>> {
     let mut stmt = conn.prepare("SELECT DISTINCT symbol FROM kline_1m ORDER BY symbol ASC")?;
     let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
-    rows.collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(Into::into)
+    rows.collect::<std::result::Result<Vec<_>, _>>().map_err(Into::into)
 }
 
 fn db_stats(conn: &Connection, db: &Path) -> Result<serde_json::Value> {
     let price_scale = read_metadata(conn, "price_scale")?.unwrap_or_else(|| "1000".to_string());
-    let snapshot_interval =
-        read_metadata(conn, "snapshot_interval")?.unwrap_or_else(|| "60".to_string());
-
+    let snapshot_interval = read_metadata(conn, "snapshot_interval")?.unwrap_or_else(|| "60".to_string());
     let symbols = list_symbol_stats(conn)?;
-
     Ok(json!({
         "db_path": db.display().to_string(),
         "price_scale": price_scale,
@@ -363,6 +295,5 @@ fn list_symbol_stats(conn: &Connection) -> Result<Vec<serde_json::Value>> {
         }))
     })?;
 
-    rows.collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(Into::into)
+    rows.collect::<std::result::Result<Vec<_>, _>>().map_err(Into::into)
 }
