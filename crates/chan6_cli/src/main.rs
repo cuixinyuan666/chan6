@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 use chan6_core::{
-    import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, storage::open_db, ImportConfig,
+    import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, query_kline_1m_at,
+    storage::open_db, ImportConfig,
 };
 use clap::{Parser, Subcommand};
 use rusqlite::Connection;
@@ -65,6 +66,20 @@ enum Commands {
         #[arg(long, default_value_t = 100)]
         limit: i64,
     },
+    QueryKlineAt {
+        #[arg(long)]
+        db: PathBuf,
+
+        #[arg(long)]
+        symbol: String,
+
+        #[arg(long)]
+        day: i32,
+
+        #[arg(long)]
+        minute: i32,
+    },
+
     QueryChip {
         #[arg(long)]
         db: PathBuf,
@@ -72,6 +87,22 @@ enum Commands {
         symbol: String,
         #[arg(long)]
         bar_id: i64,
+        #[arg(long, default_value_t = 0)]
+        top: usize,
+    },
+    QueryChipAt {
+        #[arg(long)]
+        db: PathBuf,
+
+        #[arg(long)]
+        symbol: String,
+
+        #[arg(long)]
+        day: i32,
+
+        #[arg(long)]
+        minute: i32,
+
         #[arg(long, default_value_t = 0)]
         top: usize,
     },
@@ -189,6 +220,16 @@ fn main() -> Result<()> {
             let rows = query_kline_1m(&conn, &symbol, offset, limit)?;
             println!("{}", serde_json::to_string_pretty(&rows)?);
         }
+        Commands::QueryKlineAt {
+            db,
+            symbol,
+            day,
+            minute,
+        } => {
+            let conn = open_existing_db(&db)?;
+            let row = query_kline_1m_at(&conn, &symbol, day, minute)?;
+            println!("{}", serde_json::to_string_pretty(&row)?);
+        }
         Commands::QueryChip {
             db,
             symbol,
@@ -207,6 +248,40 @@ fn main() -> Result<()> {
                 levels.sort_by_key(|x| x.price_tick);
             }
             println!("{}", serde_json::to_string_pretty(&levels)?);
+        }
+        Commands::QueryChipAt {
+            db,
+            symbol,
+            day,
+            minute,
+            top,
+        } => {
+            let conn = open_existing_db(&db)?;
+            let kline = query_kline_1m_at(&conn, &symbol, day, minute)?;
+
+            if let Some(kline) = kline {
+                let mut levels = query_chip_state(&conn, &symbol, kline.bar_id)?;
+
+                if top > 0 {
+                    levels.sort_by(|a, b| {
+                        b.volume
+                            .partial_cmp(&a.volume)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                    levels.truncate(top);
+                    levels.sort_by_key(|x| x.price_tick);
+                }
+
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "kline": kline,
+                        "chip": levels,
+                    }))?
+                );
+            } else {
+                println!("null");
+            }
         }
     }
 

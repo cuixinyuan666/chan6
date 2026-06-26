@@ -222,6 +222,45 @@ pub fn query_kline_1m(
         .map_err(Into::into)
 }
 
+pub fn query_kline_1m_at(
+    conn: &Connection,
+    symbol: &str,
+    trading_day: i32,
+    minute: i32,
+) -> Result<Option<KLine1m>> {
+    conn.query_row(
+        r#"
+        SELECT symbol, bar_id, trading_day, minute, start_ts, end_ts,
+               open, high, low, close, volume, amount, trade_count
+        FROM kline_1m
+        WHERE symbol = ?1 AND trading_day = ?2 AND minute = ?3
+        ORDER BY bar_id ASC
+        LIMIT 1
+        "#,
+        params![symbol, trading_day, minute],
+        |row| {
+            let trade_count: i64 = row.get(12)?;
+            Ok(KLine1m {
+                symbol: row.get(0)?,
+                bar_id: row.get(1)?,
+                trading_day: row.get(2)?,
+                minute: row.get(3)?,
+                start_ts: row.get(4)?,
+                end_ts: row.get(5)?,
+                open: row.get(6)?,
+                high: row.get(7)?,
+                low: row.get(8)?,
+                close: row.get(9)?,
+                volume: row.get(10)?,
+                amount: row.get(11)?,
+                trade_count: trade_count as u32,
+            })
+        },
+    )
+    .optional()
+    .map_err(Into::into)
+}
+
 pub fn query_chip_state(
     conn: &Connection,
     symbol: &str,
