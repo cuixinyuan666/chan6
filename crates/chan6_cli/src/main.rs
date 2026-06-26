@@ -96,11 +96,14 @@ fn main() -> Result<()> {
                 bail!("no csv/txt files found in {}", dir.display());
             }
 
+            eprintln!("found {} files under {}", files.len(), dir.display());
+
+            let total = files.len();
             let mut reports = Vec::new();
             let mut failed = Vec::new();
             let mut replaced_symbols = HashSet::new();
 
-            for csv in files {
+            for (idx, csv) in files.into_iter().enumerate() {
                 let symbol = infer_symbol_from_file_name(&csv);
                 let replace_this_file = if replace {
                     match symbol.as_deref() {
@@ -111,6 +114,8 @@ fn main() -> Result<()> {
                     false
                 };
 
+                eprintln!("[{}/{}] importing {}", idx + 1, total, csv.display());
+
                 match import_ticks_csv_to_sqlite(ImportConfig {
                     csv_path: csv.clone(),
                     db_path: db.clone(),
@@ -119,15 +124,21 @@ fn main() -> Result<()> {
                     snapshot_interval,
                     replace_symbol: replace_this_file,
                 }) {
-                    Ok(report) => reports.push(json!({
-                        "file": csv.display().to_string(),
-                        "replace_symbol_before_import": replace_this_file,
-                        "report": report,
-                    })),
-                    Err(err) => failed.push(json!({
-                        "file": csv.display().to_string(),
-                        "error": err.to_string(),
-                    })),
+                    Ok(report) => {
+                        eprintln!("[{}/{}] ok", idx + 1, total);
+                        reports.push(json!({
+                            "file": csv.display().to_string(),
+                            "replace_symbol_before_import": replace_this_file,
+                            "report": report,
+                        }));
+                    }
+                    Err(err) => {
+                        eprintln!("[{}/{}] failed: {}", idx + 1, total, err);
+                        failed.push(json!({
+                            "file": csv.display().to_string(),
+                            "error": err.to_string(),
+                        }));
+                    }
                 }
             }
 
