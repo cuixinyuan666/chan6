@@ -2,12 +2,15 @@ use super::model::{ChanBi, ChanFx, ChanFxKind};
 
 /// Minimum distance between two FX merged indexes for first-stage BI construction.
 ///
-/// First-stage rule is intentionally conservative and testable:
+/// This is intentionally aligned to chan.py strict BI behavior for the stage-1
+/// fixture: adjacent top/bottom FX are not enough to form a BI.
+///
+/// First-stage rule is conservative and testable:
 /// - BI is built from already detected FX, not raw bars;
 /// - same-kind consecutive FX are normalized by keeping the stronger one;
-/// - opposite-kind FX form a BI when their merged indexes are far enough;
+/// - opposite-kind FX form a BI only when their merged indexes are far enough;
 /// - output anchors always use `bar_id + price`.
-pub const DEFAULT_MIN_BI_MERGED_SPAN: usize = 1;
+pub const DEFAULT_MIN_BI_MERGED_SPAN: usize = 4;
 
 pub fn build_bis(fxs: &[ChanFx]) -> Vec<ChanBi> {
     build_bis_with_min_span(fxs, DEFAULT_MIN_BI_MERGED_SPAN)
@@ -99,10 +102,20 @@ mod tests {
     }
 
     #[test]
-    fn opposite_fxs_form_single_up_bi() {
+    fn adjacent_opposite_fxs_do_not_form_default_bi() {
+        let fxs = vec![
+            fx(0, ChanFxKind::Top, 1, 1, 12.0),
+            fx(1, ChanFxKind::Bottom, 2, 2, 7.0),
+        ];
+
+        assert!(build_bis(&fxs).is_empty());
+    }
+
+    #[test]
+    fn far_enough_opposite_fxs_form_single_up_bi() {
         let fxs = vec![
             fx(0, ChanFxKind::Bottom, 1, 10, 8.0),
-            fx(1, ChanFxKind::Top, 3, 30, 12.0),
+            fx(1, ChanFxKind::Top, 5, 50, 12.0),
         ];
 
         let bis = build_bis(&fxs);
@@ -114,7 +127,7 @@ mod tests {
         assert_eq!(bis[0].end_fx_index, 1);
         assert_eq!(bis[0].start_bar_id, 10);
         assert_eq!(bis[0].start_price, 8.0);
-        assert_eq!(bis[0].end_bar_id, 30);
+        assert_eq!(bis[0].end_bar_id, 50);
         assert_eq!(bis[0].end_price, 12.0);
         assert!(bis[0].confirmed);
         assert_eq!(bis[0].prev_index, None);
@@ -122,10 +135,10 @@ mod tests {
     }
 
     #[test]
-    fn opposite_fxs_form_single_down_bi() {
+    fn far_enough_opposite_fxs_form_single_down_bi() {
         let fxs = vec![
             fx(0, ChanFxKind::Top, 1, 10, 12.0),
-            fx(1, ChanFxKind::Bottom, 3, 30, 8.0),
+            fx(1, ChanFxKind::Bottom, 5, 50, 8.0),
         ];
 
         let bis = build_bis(&fxs);
@@ -141,10 +154,10 @@ mod tests {
         let fxs = vec![
             fx(0, ChanFxKind::Top, 1, 10, 10.0),
             fx(1, ChanFxKind::Top, 2, 20, 12.0),
-            fx(2, ChanFxKind::Bottom, 3, 30, 8.0),
+            fx(2, ChanFxKind::Bottom, 6, 60, 8.0),
         ];
 
-        let normalized = normalize_fxs_for_bi(&fxs, 1);
+        let normalized = normalize_fxs_for_bi(&fxs, 4);
         let bis = build_bis(&fxs);
 
         assert_eq!(normalized.len(), 2);
@@ -159,10 +172,10 @@ mod tests {
         let fxs = vec![
             fx(0, ChanFxKind::Bottom, 1, 10, 8.0),
             fx(1, ChanFxKind::Bottom, 2, 20, 7.0),
-            fx(2, ChanFxKind::Top, 3, 30, 12.0),
+            fx(2, ChanFxKind::Top, 6, 60, 12.0),
         ];
 
-        let normalized = normalize_fxs_for_bi(&fxs, 1);
+        let normalized = normalize_fxs_for_bi(&fxs, 4);
         let bis = build_bis(&fxs);
 
         assert_eq!(normalized.len(), 2);
@@ -176,9 +189,9 @@ mod tests {
     fn alternating_fxs_build_linked_bis() {
         let fxs = vec![
             fx(0, ChanFxKind::Bottom, 1, 10, 8.0),
-            fx(1, ChanFxKind::Top, 3, 30, 12.0),
-            fx(2, ChanFxKind::Bottom, 5, 50, 9.0),
-            fx(3, ChanFxKind::Top, 7, 70, 13.0),
+            fx(1, ChanFxKind::Top, 5, 50, 12.0),
+            fx(2, ChanFxKind::Bottom, 9, 90, 9.0),
+            fx(3, ChanFxKind::Top, 13, 130, 13.0),
         ];
 
         let bis = build_bis(&fxs);
