@@ -6,6 +6,8 @@ use std::path::PathBuf;
 pub struct Tick {
     pub symbol: String,
     pub ts: i64,
+    /// Original CSV row order. It preserves open/close ordering when multiple ticks share the same second.
+    pub seq: u64,
     pub trading_day: i32,
     pub minute: i32,
     pub price_tick: i64,
