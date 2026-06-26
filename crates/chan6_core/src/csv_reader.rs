@@ -1,7 +1,7 @@
 use crate::model::Tick;
 use crate::tdx_reader::{read_ticks_from_tdx_text, TdxReadOptions};
 use crate::text_reader::{read_ticks_from_text, TickTextReadOptions};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -38,7 +38,7 @@ pub fn read_ticks_from_csv(path: &Path, options: &TickCsvReadOptions) -> Result<
             },
         ) {
             Ok(ticks) => Ok(ticks),
-            Err(tdx_err) => Err(text_err.context(format!("tdx fallback also failed: {tdx_err}"))),
+            Err(tdx_err) => Err(anyhow!("text parser failed: {text_err}; tdx parser failed: {tdx_err}")),
         },
     }
 }
