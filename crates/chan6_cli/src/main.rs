@@ -168,6 +168,12 @@ fn main() -> Result<()> {
             let mut failed = Vec::new();
             let mut replaced_symbols = HashSet::new();
 
+            let precheck_conn = if !replace && db.exists() {
+                Some(open_db(&db)?)
+            } else {
+                None
+            };
+
             for (idx, csv) in files.into_iter().enumerate() {
                 let symbol = infer_symbol_from_file_name(&csv);
                 let replace_this_file = if replace {
@@ -180,6 +186,29 @@ fn main() -> Result<()> {
                 };
 
                 eprintln!("[{}/{}] importing {}", idx + 1, total, csv.display());
+
+                if !replace_this_file {
+                    if let Some(conn) = precheck_conn.as_ref() {
+                        let source_path = normalize_source_path(&csv)?;
+                        if source_file_exists(conn, &source_path)? {
+                            eprintln!("[{}/{}] skipped", idx + 1, total);
+                            skipped.push(json!({
+                                "file": csv.display().to_string(),
+                                "replace_symbol_before_import": replace_this_file,
+                                "report": {
+                                    "db_path": db.display().to_string(),
+                                    "price_scale": price_scale,
+                                    "skip_reason": "source file already imported",
+                                    "skipped": true,
+                                    "snapshot_interval": snapshot_interval,
+                                    "source_path": source_path,
+                                    "symbols": []
+                                }
+                            }));
+                            continue;
+                        }
+                    }
+                }
 
                 match import_ticks_csv_to_sqlite(ImportConfig {
                     csv_path: csv.clone(),
