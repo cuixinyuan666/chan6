@@ -3,7 +3,7 @@ use chan6_core::{
     import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, query_kline_1m_at,
     read_ticks_from_csv,
     storage::{insert_source_file_record, open_db, source_file_exists},
-    ImportConfig, Tick, TickCsvReadOptions,
+    ChipLevel, ImportConfig, Tick, TickCsvReadOptions,
 };
 use clap::{Parser, Subcommand};
 use rusqlite::Connection;
@@ -119,6 +119,49 @@ enum Commands {
 
         #[arg(long)]
         minute: i32,
+
+        #[arg(long, default_value_t = 0)]
+        top: usize,
+    },
+
+    QueryChart {
+        #[arg(long)]
+        db: PathBuf,
+
+        #[arg(long)]
+        symbol: String,
+
+        #[arg(long, default_value_t = 0)]
+        offset: i64,
+
+        #[arg(long, default_value_t = 300)]
+        limit: i64,
+
+        #[arg(long)]
+        chip_bar_id: Option<i64>,
+
+        #[arg(long, default_value_t = 0)]
+        top: usize,
+    },
+
+    QueryChartAt {
+        #[arg(long)]
+        db: PathBuf,
+
+        #[arg(long)]
+        symbol: String,
+
+        #[arg(long)]
+        day: i32,
+
+        #[arg(long)]
+        minute: i32,
+
+        #[arg(long, default_value_t = 120)]
+        before: i64,
+
+        #[arg(long, default_value_t = 120)]
+        after: i64,
 
         #[arg(long, default_value_t = 0)]
         top: usize,
@@ -354,16 +397,7 @@ fn main() -> Result<()> {
             top,
         } => {
             let conn = open_existing_db(&db)?;
-            let mut levels = query_chip_state(&conn, &symbol, bar_id)?;
-            if top > 0 {
-                levels.sort_by(|a, b| {
-                    b.volume
-                        .partial_cmp(&a.volume)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                });
-                levels.truncate(top);
-                levels.sort_by_key(|x| x.price_tick);
-            }
+            let levels = select_chip_levels(query_chip_state(&conn, &symbol, bar_id)?, top);
             println!("{}", serde_json::to_string_pretty(&levels)?);
         }
         Commands::QueryChipAt {
@@ -377,17 +411,8 @@ fn main() -> Result<()> {
             let kline = query_kline_1m_at(&conn, &symbol, day, minute)?;
 
             if let Some(kline) = kline {
-                let mut levels = query_chip_state(&conn, &symbol, kline.bar_id)?;
-
-                if top > 0 {
-                    levels.sort_by(|a, b| {
-                        b.volume
-                            .partial_cmp(&a.volume)
-                            .unwrap_or(std::cmp::Ordering::Equal)
-                    });
-                    levels.truncate(top);
-                    levels.sort_by_key(|x| x.price_tick);
-                }
+                let levels =
+                    select_chip_levels(query_chip_state(&conn, &symbol, kline.bar_id)?, top);
 
                 println!(
                     "{}",
@@ -405,7 +430,136 @@ fn main() -> Result<()> {
                         "volume": kline.volume,
                         "amount": kline.amount,
                         "trade_count": kline.trade_count,
+                        "chip_scope": "full_history_to_target_bar",
+                        "chip_bar_id": kline.bar_id,
+                        "chip_truncated": top > 0,
+                        "chip_top": top,
                         "chip": levels,
+                    }))?
+                );
+            } else {
+                println!("null");
+            }
+        }
+        Commands::QueryChart {
+            db,
+            symbol,
+            offset,
+            limit,
+            chip_bar_id,
+            top,
+        } => {
+            let conn = open_existing_db(&db)?;
+            let kline = query_kline_1m(&conn, &symbol, offset, limit)?;
+            let resolved_chip_bar_id = chip_bar_id.or_else(|| kline.last().map(|x| x.bar_id));
+
+            let chip = if let Some(bar_id) = resolved_chip_bar_id {
+                select_chip_levels(query_chip_state(&conn, &symbol, bar_id)?, top)
+            } else {
+                Vec::new()
+            };
+
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "meta": {
+                        "schema_version": 1,
+                        "query": "query-chart",
+                        "symbol": &symbol,
+                        "kline_scope": "offset_limit_window",
+                        "offset": offset,
+                        "limit": limit,
+                        "kline_count": kline.len(),
+                        "chip_scope": if resolved_chip_bar_id.is_some() {
+                            "full_history_to_chip_bar"
+                        } else {
+                            "none"
+                        },
+                        "chip_bar_id": resolved_chip_bar_id,
+                        "chip_truncated": top > 0,
+                        "chip_top": top,
+                    },
+                    "symbol": symbol,
+                    "offset": offset,
+                    "limit": limit,
+                    "kline_count": kline.len(),
+                    "chip_bar_id": resolved_chip_bar_id,
+                    "chip_scope": if resolved_chip_bar_id.is_some() {
+                        "full_history_to_chip_bar"
+                    } else {
+                        "none"
+                    },
+                    "chip_truncated": top > 0,
+                    "chip_top": top,
+                    "kline": kline,
+                    "chip": chip,
+                }))?
+            );
+        }
+        Commands::QueryChartAt {
+            db,
+            symbol,
+            day,
+            minute,
+            before,
+            after,
+            top,
+        } => {
+            let conn = open_existing_db(&db)?;
+            let target = query_kline_1m_at(&conn, &symbol, day, minute)?;
+
+            if let Some(target) = target {
+                let before = before.max(0);
+                let after = after.max(0);
+                let target_bar_id = target.bar_id;
+                let window_offset = (target_bar_id - before).max(0);
+                let window_limit = before + after + 1;
+
+                let kline = query_kline_1m(&conn, &symbol, window_offset, window_limit)?;
+                let target_index = kline.iter().position(|x| x.bar_id == target_bar_id);
+
+                let chip =
+                    select_chip_levels(query_chip_state(&conn, &symbol, target_bar_id)?, top);
+
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "meta": {
+                            "schema_version": 1,
+                            "query": "query-chart-at",
+                            "symbol": &symbol,
+                            "kline_scope": "target_centered_window",
+                            "day": day,
+                            "minute": minute,
+                            "before": before,
+                            "after": after,
+                            "window_offset": window_offset,
+                            "window_limit": window_limit,
+                            "kline_count": kline.len(),
+                            "target_bar_id": target_bar_id,
+                            "target_index": target_index,
+                            "chip_scope": "full_history_to_target_bar",
+                            "chip_bar_id": target_bar_id,
+                            "chip_truncated": top > 0,
+                            "chip_top": top,
+                        },
+                        "symbol": symbol,
+                        "day": day,
+                        "minute": minute,
+                        "before": before,
+                        "after": after,
+                        "window_offset": window_offset,
+                        "window_limit": window_limit,
+                        "kline_count": kline.len(),
+                        "target_bar_id": target_bar_id,
+                        "target_index": target_index,
+                        "chip_bar_id": target_bar_id,
+                        "chip_scope": "full_history_to_target_bar",
+                        "chip_truncated": top > 0,
+                        "chip_top": top,
+                        "target": target,
+                        "kline": kline,
+                        "chip": chip,
                     }))?
                 );
             } else {
@@ -415,6 +569,20 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn select_chip_levels(mut levels: Vec<ChipLevel>, top: usize) -> Vec<ChipLevel> {
+    if top > 0 {
+        levels.sort_by(|a, b| {
+            b.volume
+                .partial_cmp(&a.volume)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        levels.truncate(top);
+        levels.sort_by_key(|x| x.price_tick);
+    }
+
+    levels
 }
 
 enum BackfillOneResult {
