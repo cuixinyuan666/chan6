@@ -6,8 +6,10 @@ use std::path::Path;
 
 pub fn open_db(path: &Path) -> Result<Connection> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .with_context(|| format!("create db parent dir failed: {}", parent.display()))?;
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("create db parent dir failed: {}", parent.display()))?;
+        }
     }
 
     let conn = Connection::open(path).with_context(|| format!("open sqlite failed: {}", path.display()))?;
@@ -110,7 +112,7 @@ pub fn insert_kline_1m(conn: &Connection, k: &KLine1m) -> Result<()> {
         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
         "#,
         params![
-            k.symbol,
+            &k.symbol,
             k.bar_id,
             k.trading_day,
             k.minute,
@@ -122,7 +124,7 @@ pub fn insert_kline_1m(conn: &Connection, k: &KLine1m) -> Result<()> {
             k.close,
             k.volume,
             k.amount,
-            k.trade_count,
+            k.trade_count as i64,
         ],
     )?;
     Ok(())
@@ -146,10 +148,10 @@ pub fn insert_chip_delta_1m(
         stmt.execute(params![
             symbol,
             bar_id,
-            price_tick,
+            *price_tick,
             bin.volume,
             bin.amount,
-            bin.trade_count,
+            bin.trade_count as i64,
         ])?;
     }
 
@@ -191,6 +193,7 @@ pub fn query_kline_1m(
     )?;
 
     let rows = stmt.query_map(params![symbol, limit, offset], |row| {
+        let trade_count: i64 = row.get(12)?;
         Ok(KLine1m {
             symbol: row.get(0)?,
             bar_id: row.get(1)?,
@@ -204,7 +207,7 @@ pub fn query_kline_1m(
             close: row.get(9)?,
             volume: row.get(10)?,
             amount: row.get(11)?,
-            trade_count: row.get(12)?,
+            trade_count: trade_count as u32,
         })
     })?;
 
@@ -214,7 +217,7 @@ pub fn query_kline_1m(
 
 pub fn query_chip_state(conn: &Connection, symbol: &str, target_bar_id: i64) -> Result<Vec<ChipLevel>> {
     let price_scale = read_price_scale(conn)?;
-    let (snapshot_bar_id, mut acc) = load_nearest_snapshot(conn, symbol, target_bar_id, price_scale)?;
+    let (snapshot_bar_id, mut acc) = load_nearest_snapshot(conn, symbol, target_bar_id)?;
     apply_deltas(conn, symbol, snapshot_bar_id + 1, target_bar_id, &mut acc)?;
     Ok(acc.to_levels(price_scale))
 }
@@ -223,7 +226,6 @@ fn load_nearest_snapshot(
     conn: &Connection,
     symbol: &str,
     target_bar_id: i64,
-    _price_scale: f64,
 ) -> Result<(i64, ChipAccumulator)> {
     let row: Option<(i64, Vec<u8>)> = conn
         .query_row(
@@ -276,12 +278,13 @@ fn apply_deltas(
     )?;
 
     let rows = stmt.query_map(params![symbol, from_bar_id, to_bar_id], |row| {
+        let trade_count: i64 = row.get(3)?;
         Ok((
             row.get::<_, i64>(0)?,
             ChipBin {
                 volume: row.get(1)?,
                 amount: row.get(2)?,
-                trade_count: row.get(3)?,
+                trade_count: trade_count as u32,
             },
         ))
     })?;
