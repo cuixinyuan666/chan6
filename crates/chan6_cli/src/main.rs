@@ -147,6 +147,7 @@ fn main() -> Result<()> {
 
             let total = files.len();
             let mut reports = Vec::new();
+            let mut skipped = Vec::new();
             let mut failed = Vec::new();
             let mut replaced_symbols = HashSet::new();
 
@@ -172,12 +173,21 @@ fn main() -> Result<()> {
                     replace_symbol: replace_this_file,
                 }) {
                     Ok(report) => {
-                        eprintln!("[{}/{}] ok", idx + 1, total);
-                        reports.push(json!({
-                            "file": csv.display().to_string(),
-                            "replace_symbol_before_import": replace_this_file,
-                            "report": report,
-                        }));
+                        if report.skipped {
+                            eprintln!("[{}/{}] skipped", idx + 1, total);
+                            skipped.push(json!({
+                                "file": csv.display().to_string(),
+                                "replace_symbol_before_import": replace_this_file,
+                                "report": report,
+                            }));
+                        } else {
+                            eprintln!("[{}/{}] ok", idx + 1, total);
+                            reports.push(json!({
+                                "file": csv.display().to_string(),
+                                "replace_symbol_before_import": replace_this_file,
+                                "report": report,
+                            }));
+                        }
                     }
                     Err(err) => {
                         eprintln!("[{}/{}] failed: {}", idx + 1, total, err);
@@ -194,8 +204,10 @@ fn main() -> Result<()> {
                 serde_json::to_string_pretty(&json!({
                     "db_path": db.display().to_string(),
                     "imported_count": reports.len(),
+                    "skipped_count": skipped.len(),
                     "failed_count": failed.len(),
                     "imported": reports,
+                    "skipped": skipped,
                     "failed": failed,
                 }))?
             );

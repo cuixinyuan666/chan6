@@ -68,6 +68,22 @@ pub fn init_db(conn: &Connection) -> Result<()> {
             bins_blob BLOB NOT NULL,
             PRIMARY KEY(symbol, bar_id)
         );
+
+        CREATE TABLE IF NOT EXISTS source_files (
+            source_path TEXT NOT NULL,
+            symbol TEXT NOT NULL,
+            file_size INTEGER NOT NULL,
+            modified_at INTEGER NOT NULL,
+            start_bar_id INTEGER NOT NULL,
+            end_bar_id INTEGER NOT NULL,
+            tick_count INTEGER NOT NULL,
+            kline_count INTEGER NOT NULL,
+            imported_at INTEGER NOT NULL,
+            PRIMARY KEY(source_path, symbol)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_source_files_symbol
+        ON source_files(symbol);
         "#,
     )?;
     Ok(())
@@ -106,6 +122,56 @@ pub fn delete_symbol_data(conn: &Connection, symbol: &str) -> Result<()> {
     conn.execute(
         "DELETE FROM chip_snapshot WHERE symbol = ?1",
         params![symbol],
+    )?;
+    conn.execute(
+        "DELETE FROM source_files WHERE symbol = ?1",
+        params![symbol],
+    )?;
+    Ok(())
+}
+
+pub fn source_file_exists(conn: &Connection, source_path: &str) -> Result<bool> {
+    let exists: Option<i64> = conn
+        .query_row(
+            "SELECT 1 FROM source_files WHERE source_path = ?1 LIMIT 1",
+            params![source_path],
+            |row| row.get(0),
+        )
+        .optional()?;
+
+    Ok(exists.is_some())
+}
+
+pub fn insert_source_file_record(
+    conn: &Connection,
+    source_path: &str,
+    symbol: &str,
+    file_size: i64,
+    modified_at: i64,
+    start_bar_id: i64,
+    end_bar_id: i64,
+    tick_count: usize,
+    kline_count: usize,
+    imported_at: i64,
+) -> Result<()> {
+    conn.execute(
+        r#"
+        INSERT OR REPLACE INTO source_files(
+            source_path, symbol, file_size, modified_at,
+            start_bar_id, end_bar_id, tick_count, kline_count, imported_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+        "#,
+        params![
+            source_path,
+            symbol,
+            file_size,
+            modified_at,
+            start_bar_id,
+            end_bar_id,
+            tick_count as i64,
+            kline_count as i64,
+            imported_at,
+        ],
     )?;
     Ok(())
 }

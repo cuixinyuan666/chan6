@@ -4,12 +4,14 @@ use crate::model::{
 };
 use crate::session::date_from_trading_day;
 use crate::storage::{
-    delete_symbol_data, insert_chip_delta_1m, insert_chip_snapshot, insert_kline_1m, open_db,
-    query_chip_state, set_metadata,
+    delete_symbol_data, insert_chip_delta_1m, insert_chip_snapshot, insert_kline_1m,
+    insert_source_file_record, open_db, query_chip_state, set_metadata, source_file_exists,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use rusqlite::{params, Connection};
 use std::collections::BTreeMap;
+use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn import_ticks_csv_to_sqlite(config: ImportConfig) -> Result<ImportReport> {
     if config.price_scale <= 0.0 {
@@ -17,6 +19,21 @@ pub fn import_ticks_csv_to_sqlite(config: ImportConfig) -> Result<ImportReport> 
     }
     if config.snapshot_interval <= 0 {
         return Err(anyhow!("snapshot_interval must be greater than 0"));
+    }
+
+    let source_path = normalize_source_path(&config.csv_path)?;
+    let conn = open_db(&config.db_path)?;
+
+    if !config.replace_symbol && source_file_exists(&conn, &source_path)? {
+        return Ok(ImportReport {
+            db_path: config.db_path.display().to_string(),
+            price_scale: config.price_scale,
+            snapshot_interval: config.snapshot_interval,
+            skipped: true,
+            source_path: Some(source_path),
+            skip_reason: Some("source file already imported".to_string()),
+            symbols: Vec::new(),
+        });
     }
 
     let ticks = read_ticks_from_csv(
@@ -27,10 +44,9 @@ pub fn import_ticks_csv_to_sqlite(config: ImportConfig) -> Result<ImportReport> 
         },
     )?;
 
-    let conn = open_db(&config.db_path)?;
     conn.execute_batch("BEGIN IMMEDIATE")?;
 
-    let result = import_sorted_ticks(&conn, &ticks, &config);
+    let result = import_sorted_ticks(&conn, &ticks, &config, &source_path);
 
     match result {
         Ok(report) => {
@@ -44,10 +60,38 @@ pub fn import_ticks_csv_to_sqlite(config: ImportConfig) -> Result<ImportReport> 
     }
 }
 
+fn normalize_source_path(path: &Path) -> Result<String> {
+    let canonical = std::fs::canonicalize(path)
+        .with_context(|| format!("canonicalize source path failed: {}", path.display()))?;
+    Ok(canonical.to_string_lossy().replace('\\', "/"))
+}
+
+fn source_file_metadata(path: &Path) -> Result<(i64, i64)> {
+    let meta = std::fs::metadata(path)
+        .with_context(|| format!("read source file metadata failed: {}", path.display()))?;
+
+    let modified_at = meta
+        .modified()
+        .unwrap_or(UNIX_EPOCH)
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    Ok((meta.len() as i64, modified_at))
+}
+
+fn current_unix_ts() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64
+}
+
 fn import_sorted_ticks(
     conn: &Connection,
     ticks: &[Tick],
     config: &ImportConfig,
+    source_path: &str,
 ) -> Result<ImportReport> {
     set_metadata(conn, "price_scale", &config.price_scale.to_string())?;
     set_metadata(
@@ -57,6 +101,7 @@ fn import_sorted_ticks(
     )?;
 
     let mut reports = Vec::new();
+    let (file_size, modified_at) = source_file_metadata(&config.csv_path)?;
     let mut start = 0usize;
 
     while start < ticks.len() {
@@ -81,6 +126,23 @@ fn import_sorted_ticks(
             start_bar_id,
             initial_chip_acc,
         )?;
+
+        if report.kline_count > 0 {
+            let end_bar_id = start_bar_id + report.kline_count as i64 - 1;
+            insert_source_file_record(
+                conn,
+                source_path,
+                &symbol,
+                file_size,
+                modified_at,
+                start_bar_id,
+                end_bar_id,
+                report.tick_count,
+                report.kline_count,
+                current_unix_ts(),
+            )?;
+        }
+
         reports.push(report);
         start = end;
     }
@@ -89,6 +151,9 @@ fn import_sorted_ticks(
         db_path: config.db_path.display().to_string(),
         price_scale: config.price_scale,
         snapshot_interval: config.snapshot_interval,
+        skipped: false,
+        source_path: Some(source_path.to_string()),
+        skip_reason: None,
         symbols: reports,
     })
 }

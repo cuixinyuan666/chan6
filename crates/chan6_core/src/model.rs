@@ -112,5 +112,11 @@ pub struct ImportReport {
     pub db_path: String,
     pub price_scale: f64,
     pub snapshot_interval: i64,
+    #[serde(default)]
+    pub skipped: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_reason: Option<String>,
     pub symbols: Vec<SymbolImportReport>,
 }
