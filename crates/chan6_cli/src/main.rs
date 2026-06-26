@@ -1,14 +1,17 @@
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use chan6_core::{
     import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, query_kline_1m_at,
-    storage::open_db, ImportConfig,
+    read_ticks_from_csv,
+    storage::{insert_source_file_record, open_db, source_file_exists},
+    ImportConfig, Tick, TickCsvReadOptions,
 };
 use clap::{Parser, Subcommand};
 use rusqlite::Connection;
 use serde_json::json;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Parser)]
 #[command(name = "chan6")]
@@ -47,6 +50,20 @@ enum Commands {
         snapshot_interval: i64,
         #[arg(long, default_value_t = false)]
         replace: bool,
+    },
+
+    BackfillSourceFiles {
+        #[arg(long)]
+        dir: PathBuf,
+
+        #[arg(long)]
+        db: PathBuf,
+
+        #[arg(long, default_value_t = false)]
+        recursive: bool,
+
+        #[arg(long, default_value_t = 1000.0)]
+        price_scale: f64,
     },
     ListSymbols {
         #[arg(long)]
@@ -212,6 +229,62 @@ fn main() -> Result<()> {
                 }))?
             );
         }
+        Commands::BackfillSourceFiles {
+            dir,
+            db,
+            recursive,
+            price_scale,
+        } => {
+            let files = collect_tick_files(&dir, recursive)?;
+            if files.is_empty() {
+                bail!("no csv/txt files found in {}", dir.display());
+            }
+
+            eprintln!("found {} files under {}", files.len(), dir.display());
+
+            let conn = open_existing_db(&db)?;
+            let total = files.len();
+            let mut reports = Vec::new();
+            let mut skipped = Vec::new();
+            let mut failed = Vec::new();
+            let mut next_bar_id_by_symbol: HashMap<String, i64> = HashMap::new();
+
+            for (idx, csv) in files.into_iter().enumerate() {
+                eprintln!("[{}/{}] backfilling {}", idx + 1, total, csv.display());
+
+                match backfill_one_source_file(&conn, &csv, price_scale, &mut next_bar_id_by_symbol)
+                {
+                    Ok(BackfillOneResult::Imported(value)) => {
+                        eprintln!("[{}/{}] ok", idx + 1, total);
+                        reports.push(value);
+                    }
+                    Ok(BackfillOneResult::Skipped(value)) => {
+                        eprintln!("[{}/{}] skipped", idx + 1, total);
+                        skipped.push(value);
+                    }
+                    Err(err) => {
+                        eprintln!("[{}/{}] failed: {}", idx + 1, total, err);
+                        failed.push(json!({
+                            "file": csv.display().to_string(),
+                            "error": err.to_string(),
+                        }));
+                    }
+                }
+            }
+
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "db_path": db.display().to_string(),
+                    "backfilled_count": reports.len(),
+                    "skipped_count": skipped.len(),
+                    "failed_count": failed.len(),
+                    "backfilled": reports,
+                    "skipped": skipped,
+                    "failed": failed,
+                }))?
+            );
+        }
         Commands::ListSymbols { db } => {
             let conn = open_existing_db(&db)?;
             let rows = list_symbols(&conn)?;
@@ -310,6 +383,245 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+enum BackfillOneResult {
+    Imported(serde_json::Value),
+    Skipped(serde_json::Value),
+}
+
+fn backfill_one_source_file(
+    conn: &Connection,
+    path: &Path,
+    price_scale: f64,
+    next_bar_id_by_symbol: &mut HashMap<String, i64>,
+) -> Result<BackfillOneResult> {
+    let source_path = normalize_source_path(path)?;
+
+    if source_file_exists(conn, &source_path)? {
+        return Ok(BackfillOneResult::Skipped(json!({
+            "file": path.display().to_string(),
+            "source_path": source_path,
+            "reason": "source file already tracked",
+        })));
+    }
+
+    let symbol_hint = infer_symbol_from_file_name(path);
+    let (file_size, modified_at) = source_file_metadata(path)?;
+    let imported_at = current_unix_ts();
+
+    let ticks = match read_ticks_from_csv(
+        path,
+        &TickCsvReadOptions {
+            default_symbol: symbol_hint.clone(),
+            price_scale,
+        },
+    ) {
+        Ok(ticks) => ticks,
+        Err(err) => {
+            let message = err.to_string();
+            if message.contains("no valid ticks") {
+                let symbol = symbol_hint.unwrap_or_else(|| "UNKNOWN".to_string());
+                insert_source_file_record(
+                    conn,
+                    &source_path,
+                    &symbol,
+                    file_size,
+                    modified_at,
+                    -1,
+                    -1,
+                    0,
+                    0,
+                    imported_at,
+                )?;
+
+                return Ok(BackfillOneResult::Imported(json!({
+                    "file": path.display().to_string(),
+                    "source_path": source_path,
+                    "empty": true,
+                    "reason": "no valid ticks parsed",
+                    "symbols": [
+                        {
+                            "symbol": symbol,
+                            "tick_count": 0,
+                            "kline_count": 0,
+                            "start_bar_id": -1,
+                            "end_bar_id": -1
+                        }
+                    ],
+                })));
+            }
+
+            return Err(err);
+        }
+    };
+
+    let by_symbol = count_ticks_by_symbol(&ticks);
+    if by_symbol.is_empty() {
+        let symbol = symbol_hint.unwrap_or_else(|| "UNKNOWN".to_string());
+        insert_source_file_record(
+            conn,
+            &source_path,
+            &symbol,
+            file_size,
+            modified_at,
+            -1,
+            -1,
+            0,
+            0,
+            imported_at,
+        )?;
+
+        return Ok(BackfillOneResult::Imported(json!({
+            "file": path.display().to_string(),
+            "source_path": source_path,
+            "empty": true,
+            "reason": "no valid ticks parsed",
+            "symbols": [
+                {
+                    "symbol": symbol,
+                    "tick_count": 0,
+                    "kline_count": 0,
+                    "start_bar_id": -1,
+                    "end_bar_id": -1
+                }
+            ],
+        })));
+    }
+
+    let mut symbol_reports = Vec::new();
+
+    for (symbol, stat) in by_symbol {
+        let next_bar_id = if let Some(next) = next_bar_id_by_symbol.get(&symbol) {
+            *next
+        } else {
+            next_backfill_bar_id(conn, &symbol)?
+        };
+
+        let kline_count = stat.minutes.len();
+        if kline_count == 0 {
+            continue;
+        }
+
+        let start_bar_id = next_bar_id;
+        let end_bar_id = start_bar_id + kline_count as i64 - 1;
+        let max_bar_id = max_bar_id_for_symbol(conn, &symbol)?;
+
+        if end_bar_id > max_bar_id {
+            return Err(anyhow!(
+                "source file {} maps to bar_id {}..{}, but database max_bar_id for {} is {}",
+                path.display(),
+                start_bar_id,
+                end_bar_id,
+                symbol,
+                max_bar_id
+            ));
+        }
+
+        insert_source_file_record(
+            conn,
+            &source_path,
+            &symbol,
+            file_size,
+            modified_at,
+            start_bar_id,
+            end_bar_id,
+            stat.tick_count,
+            kline_count,
+            imported_at,
+        )?;
+
+        next_bar_id_by_symbol.insert(symbol.clone(), end_bar_id + 1);
+
+        symbol_reports.push(json!({
+            "symbol": symbol,
+            "tick_count": stat.tick_count,
+            "kline_count": kline_count,
+            "start_bar_id": start_bar_id,
+            "end_bar_id": end_bar_id,
+        }));
+    }
+
+    Ok(BackfillOneResult::Imported(json!({
+        "file": path.display().to_string(),
+        "source_path": source_path,
+        "symbols": symbol_reports,
+    })))
+}
+
+#[derive(Default)]
+struct BackfillSymbolStat {
+    tick_count: usize,
+    minutes: BTreeSet<(i32, i32)>,
+}
+
+fn count_ticks_by_symbol(ticks: &[Tick]) -> BTreeMap<String, BackfillSymbolStat> {
+    let mut out: BTreeMap<String, BackfillSymbolStat> = BTreeMap::new();
+
+    for tick in ticks {
+        let entry = out.entry(tick.symbol.clone()).or_default();
+        entry.tick_count += 1;
+        entry.minutes.insert((tick.trading_day, tick.minute));
+    }
+
+    out
+}
+
+fn normalize_source_path(path: &Path) -> Result<String> {
+    let canonical = std::fs::canonicalize(path)
+        .with_context(|| format!("canonicalize source path failed: {}", path.display()))?;
+    Ok(canonical.to_string_lossy().replace('\\', "/"))
+}
+
+fn source_file_metadata(path: &Path) -> Result<(i64, i64)> {
+    let meta = std::fs::metadata(path)
+        .with_context(|| format!("read source file metadata failed: {}", path.display()))?;
+
+    let modified_at = meta
+        .modified()
+        .unwrap_or(UNIX_EPOCH)
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    Ok((meta.len() as i64, modified_at))
+}
+
+fn current_unix_ts() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64
+}
+
+fn next_backfill_bar_id(conn: &Connection, symbol: &str) -> Result<i64> {
+    let next_from_source_files: Option<i64> = conn.query_row(
+        "SELECT MAX(end_bar_id) + 1 FROM source_files WHERE symbol = ?1",
+        [symbol],
+        |row| row.get::<_, Option<i64>>(0),
+    )?;
+
+    if let Some(next) = next_from_source_files {
+        return Ok(next);
+    }
+
+    let min_bar_id: Option<i64> = conn.query_row(
+        "SELECT MIN(bar_id) FROM kline_1m WHERE symbol = ?1",
+        [symbol],
+        |row| row.get::<_, Option<i64>>(0),
+    )?;
+
+    min_bar_id.ok_or_else(|| anyhow!("symbol {} has no kline_1m rows", symbol))
+}
+
+fn max_bar_id_for_symbol(conn: &Connection, symbol: &str) -> Result<i64> {
+    let max_bar_id: Option<i64> = conn.query_row(
+        "SELECT MAX(bar_id) FROM kline_1m WHERE symbol = ?1",
+        [symbol],
+        |row| row.get::<_, Option<i64>>(0),
+    )?;
+
+    max_bar_id.ok_or_else(|| anyhow!("symbol {} has no kline_1m rows", symbol))
 }
 
 fn open_existing_db(path: &Path) -> Result<Connection> {
