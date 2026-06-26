@@ -1,0 +1,16 @@
+[package]
+name = "chan6_cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "chan6"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+chan6_core = { path = "../chan6_core" }
+clap.workspace = true
+rusqlite.workspace = true
+serde_json.workspace = true
