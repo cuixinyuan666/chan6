@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import 'core/chart_layer.dart';
 import 'core/chart_models.dart';
 import 'core/coordinate_system.dart';
 import 'core/layer_manager.dart';
@@ -13,19 +14,22 @@ class ChartShell extends StatefulWidget {
   const ChartShell({
     super.key,
     required this.initialState,
+    this.onHoverBarChanged,
   });
 
   final ChartState initialState;
+  final ValueChanged<KLinePoint>? onHoverBarChanged;
 
   @override
   State<ChartShell> createState() => _ChartShellState();
 }
 
 class _ChartShellState extends State<ChartShell> {
-  late ChartState state;
+  late ChartState _state = widget.initialState;
+  int? _lastHoverBarId;
 
-  late final LayerManager layerManager = LayerManager(
-    const [
+  final LayerManager _layerManager = LayerManager(
+    <ChartLayer>[
       KLineLayer(),
       DrawingLayer(),
       ChipLayer(),
@@ -34,84 +38,109 @@ class _ChartShellState extends State<ChartShell> {
   );
 
   @override
-  void initState() {
-    super.initState();
-    state = widget.initialState;
+  void didUpdateWidget(covariant ChartShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.initialState != widget.initialState) {
+      _state = widget.initialState.copyWith(
+        crosshair: _state.crosshair,
+      );
+    }
   }
 
-  void _handleHover(PointerHoverEvent event, Size size) {
-    final coord = _buildCoordinateSystem(size);
-    final index = coord.xToIndex(event.localPosition.dx);
-    final price = coord.yToPrice(event.localPosition.dy);
+  void _handleHover(PointerHoverEvent event, CoordinateSystem coordinateSystem) {
+    final local = event.localPosition;
+    final chartRect = coordinateSystem.chartRect;
+
+    if (!chartRect.contains(local) || _state.kline.isEmpty) {
+      setState(() {
+        _state = _state.copyWith(crosshair: CrosshairState.hidden);
+      });
+      return;
+    }
+
+    final index = coordinateSystem.xToIndex(local.dx);
+    if (index < 0 || index >= _state.kline.length) {
+      setState(() {
+        _state = _state.copyWith(crosshair: CrosshairState.hidden);
+      });
+      return;
+    }
+
+    final price = coordinateSystem.yToPrice(local.dy);
+    final bar = _state.kline[index];
 
     setState(() {
-      state = state.copyWith(
+      _state = _state.copyWith(
         crosshair: CrosshairState(
           visible: true,
+          x: coordinateSystem.indexToX(index),
+          y: local.dy,
           index: index,
           price: price,
         ),
       );
     });
+
+    if (_lastHoverBarId != bar.barId) {
+      _lastHoverBarId = bar.barId;
+      widget.onHoverBarChanged?.call(bar);
+    }
   }
 
   void _handleExit(PointerExitEvent event) {
+    _lastHoverBarId = null;
     setState(() {
-      state = state.copyWith(crosshair: CrosshairState.hidden);
+      _state = _state.copyWith(crosshair: CrosshairState.hidden);
     });
-  }
-
-  CoordinateSystem _buildCoordinateSystem(Size size) {
-    const leftPadding = 56.0;
-    const topPadding = 24.0;
-    const bottomPadding = 32.0;
-    const chipWidth = 180.0;
-    const gap = 16.0;
-
-    final chartRect = Rect.fromLTWH(
-      leftPadding,
-      topPadding,
-      size.width - leftPadding - chipWidth - gap - 24,
-      size.height - topPadding - bottomPadding,
-    );
-
-    final chipRect = Rect.fromLTWH(
-      chartRect.right + gap,
-      chartRect.top,
-      chipWidth,
-      chartRect.height,
-    );
-
-    return CoordinateSystem(
-      chartRect: chartRect,
-      chipRect: chipRect,
-      viewport: state.viewport,
-      klineLength: state.kline.length,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = Size(
-          constraints.maxWidth,
-          constraints.maxHeight,
-        );
+    return ColoredBox(
+      color: const Color(0xff11151c),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final size = Size(
+            constraints.maxWidth,
+            constraints.maxHeight,
+          );
 
-        return MouseRegion(
-          onHover: (event) => _handleHover(event, size),
-          onExit: _handleExit,
-          child: CustomPaint(
-            size: size,
-            painter: _ChartPainter(
-              state: state,
-              layerManager: layerManager,
-              coordinateSystem: _buildCoordinateSystem(size),
+          final chartRect = Rect.fromLTWH(
+            12,
+            44,
+            size.width * 0.76 - 18,
+            size.height - 72,
+          );
+
+          final chipRect = Rect.fromLTWH(
+            chartRect.right + 12,
+            chartRect.top,
+            size.width - chartRect.right - 24,
+            chartRect.height,
+          );
+
+          final coordinateSystem = CoordinateSystem(
+            chartRect: chartRect,
+            chipRect: chipRect,
+            viewport: _state.viewport,
+            klineLength: _state.kline.length,
+          );
+
+          return MouseRegion(
+            onHover: (event) => _handleHover(event, coordinateSystem),
+            onExit: _handleExit,
+            child: CustomPaint(
+              size: size,
+              painter: _ChartPainter(
+                state: _state,
+                coordinateSystem: coordinateSystem,
+                layerManager: _layerManager,
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -119,46 +148,47 @@ class _ChartShellState extends State<ChartShell> {
 class _ChartPainter extends CustomPainter {
   const _ChartPainter({
     required this.state,
-    required this.layerManager,
     required this.coordinateSystem,
+    required this.layerManager,
   });
 
   final ChartState state;
-  final LayerManager layerManager;
   final CoordinateSystem coordinateSystem;
+  final LayerManager layerManager;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final backgroundPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = const Color(0xff111318);
-
-    canvas.drawRect(Offset.zero & size, backgroundPaint);
+    final background = Paint()..color = const Color(0xff11151c);
+    canvas.drawRect(Offset.zero & size, background);
 
     final framePaint = Paint()
+      ..color = const Color(0xff2a3442)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = const Color(0xff3a3f4b);
+      ..strokeWidth = 1;
 
     canvas.drawRect(coordinateSystem.chartRect, framePaint);
     canvas.drawRect(coordinateSystem.chipRect, framePaint);
 
-    layerManager.paint(canvas, size, state, coordinateSystem);
-
-    final textPainter = TextPainter(
+    final titlePainter = TextPainter(
       text: TextSpan(
-        text: '${state.symbol}  ${state.meta.chipScope}',
+        text:
+            'Chan6 ${state.symbol} | ${state.meta.query} | chip=${state.meta.chipScope} | chip_bar=${state.meta.chipBarId ?? '-'}',
         style: const TextStyle(
           color: Color(0xffcfd8dc),
-          fontSize: 12,
+          fontSize: 13,
         ),
       ),
       textDirection: TextDirection.ltr,
-    )..layout();
+      maxLines: 1,
+    )..layout(maxWidth: size.width - 24);
 
-    textPainter.paint(
+    titlePainter.paint(canvas, const Offset(12, 14));
+
+    layerManager.paint(
       canvas,
-      Offset(coordinateSystem.chartRect.left, 4),
+      size,
+      state,
+      coordinateSystem,
     );
   }
 

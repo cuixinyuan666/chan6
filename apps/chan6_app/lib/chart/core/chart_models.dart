@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 class KLinePoint {
   const KLinePoint({
     required this.symbol,
@@ -97,54 +99,30 @@ class ChartViewport {
   final int endIndex;
   final double minPrice;
   final double maxPrice;
-
-  ChartViewport copyWith({
-    int? startIndex,
-    int? endIndex,
-    double? minPrice,
-    double? maxPrice,
-  }) {
-    return ChartViewport(
-      startIndex: startIndex ?? this.startIndex,
-      endIndex: endIndex ?? this.endIndex,
-      minPrice: minPrice ?? this.minPrice,
-      maxPrice: maxPrice ?? this.maxPrice,
-    );
-  }
 }
 
 class CrosshairState {
   const CrosshairState({
     required this.visible,
+    required this.x,
+    required this.y,
     required this.index,
     required this.price,
   });
 
-  final bool visible;
-  final int? index;
-  final double? price;
-
   static const hidden = CrosshairState(
     visible: false,
-    index: null,
-    price: null,
+    x: 0,
+    y: 0,
+    index: 0,
+    price: 0,
   );
-}
 
-class DrawingObject {
-  const DrawingObject({
-    required this.id,
-    required this.type,
-    required this.points,
-    this.visible = true,
-    this.locked = false,
-  });
-
-  final String id;
-  final String type;
-  final List<ChartAnchor> points;
   final bool visible;
-  final bool locked;
+  final double x;
+  final double y;
+  final int index;
+  final double price;
 }
 
 class ChartAnchor {
@@ -155,6 +133,18 @@ class ChartAnchor {
 
   final int barId;
   final double price;
+}
+
+class DrawingObject {
+  const DrawingObject.line({
+    required this.id,
+    required this.start,
+    required this.end,
+  });
+
+  final String id;
+  final ChartAnchor start;
+  final ChartAnchor end;
 }
 
 class ChartState {
@@ -196,22 +186,22 @@ class ChartState {
     );
   }
 
-  static ChartState demo() {
-    final bars = <KLinePoint>[];
+  factory ChartState.demo() {
+    final kline = <KLinePoint>[];
     var price = 10.0;
 
     for (var i = 0; i < 160; i++) {
+      final wave = math.sin(i / 8.0) * 0.08;
       final open = price;
-      final close = open + ((i % 7) - 3) * 0.03;
-      final high = open > close ? open + 0.08 : close + 0.08;
-      final low = open < close ? open - 0.08 : close - 0.08;
-      price = close;
+      final close = price + wave + (i % 7 - 3) * 0.01;
+      final high = math.max(open, close) + 0.08 + (i % 5) * 0.01;
+      final low = math.min(open, close) - 0.08 - (i % 3) * 0.01;
 
-      bars.add(
+      kline.add(
         KLinePoint(
-          symbol: '002003',
+          symbol: 'DEMO',
           barId: i,
-          tradingDay: 20260511,
+          tradingDay: 20260626,
           minute: 930 + i,
           open: open,
           high: high,
@@ -221,38 +211,50 @@ class ChartState {
           amount: (1000 + i * 3) * close,
         ),
       );
+
+      price = close;
     }
 
-    final chip = <ChipLevel>[
-      for (var i = 0; i < 40; i++)
+    var minPrice = kline.first.low;
+    var maxPrice = kline.first.high;
+    for (final item in kline) {
+      minPrice = math.min(minPrice, item.low);
+      maxPrice = math.max(maxPrice, item.high);
+    }
+
+    final chip = <ChipLevel>[];
+    for (var i = 0; i < 40; i++) {
+      final p = minPrice + (maxPrice - minPrice) * i / 39;
+      chip.add(
         ChipLevel(
-          priceTick: 9500 + i * 10,
-          price: 9.5 + i * 0.01,
-          volume: 1000.0 + (i % 9) * 500,
-          amount: (1000.0 + (i % 9) * 500) * (9.5 + i * 0.01),
+          priceTick: (p * 1000).round(),
+          price: p,
+          volume: 1000 + math.sin(i / 5) * 600 + i * 30,
+          amount: p * 1000,
           tradeCount: 10 + i,
         ),
-    ];
+      );
+    }
 
     return ChartState(
-      symbol: '002003',
-      kline: bars,
+      symbol: 'DEMO',
+      kline: kline,
       chip: chip,
       meta: const ChartMeta(
         schemaVersion: 1,
         query: 'demo',
-        symbol: '002003',
-        klineScope: 'demo_window',
-        chipScope: 'full_history_to_target_bar',
-        chipBarId: 80,
+        symbol: 'DEMO',
+        klineScope: 'demo',
+        chipScope: 'demo',
+        chipBarId: null,
         chipTruncated: false,
         chipTop: 0,
       ),
-      viewport: const ChartViewport(
+      viewport: ChartViewport(
         startIndex: 0,
-        endIndex: 159,
-        minPrice: 9.4,
-        maxPrice: 10.4,
+        endIndex: kline.length - 1,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
       ),
       crosshair: CrosshairState.hidden,
       drawings: const [],

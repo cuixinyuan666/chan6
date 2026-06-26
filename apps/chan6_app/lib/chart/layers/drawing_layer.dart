@@ -8,32 +8,49 @@ class DrawingLayer extends ChartLayer {
   const DrawingLayer() : super(id: 'drawing');
 
   @override
-  void paint(Canvas canvas, Size size, ChartState state, CoordinateSystem coord) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    ChartState state,
+    CoordinateSystem coordinateSystem,
+  ) {
+    if (state.drawings.isEmpty || state.kline.isEmpty) {
+      return;
+    }
+
     final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = const Color(0xffffca28);
+      ..color = const Color(0xffffcc80)
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke;
 
     for (final drawing in state.drawings) {
-      if (!drawing.visible || drawing.points.length < 2) {
+      final startIndex = _barIdToIndex(state, drawing.start.barId);
+      final endIndex = _barIdToIndex(state, drawing.end.barId);
+
+      if (startIndex == null || endIndex == null) {
         continue;
       }
 
-      final p1 = drawing.points[0];
-      final p2 = drawing.points[1];
-
-      final i1 = state.kline.indexWhere((x) => x.barId == p1.barId);
-      final i2 = state.kline.indexWhere((x) => x.barId == p2.barId);
-
-      if (i1 < 0 || i2 < 0) {
-        continue;
-      }
-
-      canvas.drawLine(
-        Offset(coord.indexToX(i1), coord.priceToY(p1.price)),
-        Offset(coord.indexToX(i2), coord.priceToY(p2.price)),
-        paint,
+      final start = Offset(
+        coordinateSystem.indexToX(startIndex),
+        coordinateSystem.priceToY(drawing.start.price),
       );
+
+      final end = Offset(
+        coordinateSystem.indexToX(endIndex),
+        coordinateSystem.priceToY(drawing.end.price),
+      );
+
+      canvas.drawLine(start, end, paint);
     }
+  }
+
+  int? _barIdToIndex(ChartState state, int barId) {
+    for (var i = 0; i < state.kline.length; i++) {
+      if (state.kline[i].barId == barId) {
+        return i;
+      }
+    }
+    return null;
   }
 }
