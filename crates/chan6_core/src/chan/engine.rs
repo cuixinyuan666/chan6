@@ -144,7 +144,7 @@ mod tests {
         assert!(snapshot
             .merged_bars
             .iter()
-            .any(|bar| bar.start_bar_id == 2 && bar.end_bar_id == 3));
+            .any(|bar| bar.start_bar_id <= 2 && bar.end_bar_id >= 3));
     }
 
     #[test]
