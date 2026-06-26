@@ -86,15 +86,27 @@ pub struct ChanMergedBar {
     pub symbol: String,
     pub start_bar_id: i64,
     pub end_bar_id: i64,
+    /// Raw envelope high anchor. This matches hichan exported `high_raw_index`.
     pub high_bar_id: i64,
+    /// Raw envelope low anchor. This matches hichan exported `low_raw_index`.
     pub low_bar_id: i64,
+    /// Internal calculation high anchor after include-direction contraction.
+    pub calc_high_bar_id: i64,
+    /// Internal calculation low anchor after include-direction contraction.
+    pub calc_low_bar_id: i64,
     pub trading_day: i32,
     pub minute: i32,
     pub start_ts: i64,
     pub end_ts: i64,
     pub open: f64,
+    /// Raw envelope high for display/exported merged box.
     pub high: f64,
+    /// Raw envelope low for display/exported merged box.
     pub low: f64,
+    /// Internal calculation high used by FX/BI rules.
+    pub calc_high: f64,
+    /// Internal calculation low used by FX/BI rules.
+    pub calc_low: f64,
     pub close: f64,
     pub volume: f64,
     pub amount: f64,
@@ -110,6 +122,8 @@ impl ChanMergedBar {
             end_bar_id: bar.bar_id,
             high_bar_id: bar.bar_id,
             low_bar_id: bar.bar_id,
+            calc_high_bar_id: bar.bar_id,
+            calc_low_bar_id: bar.bar_id,
             trading_day: bar.trading_day,
             minute: bar.minute,
             start_ts: bar.start_ts,
@@ -117,6 +131,8 @@ impl ChanMergedBar {
             open: bar.open,
             high: bar.high,
             low: bar.low,
+            calc_high: bar.high,
+            calc_low: bar.low,
             close: bar.close,
             volume: bar.volume,
             amount: bar.amount,
