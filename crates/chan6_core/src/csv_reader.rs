@@ -2,6 +2,8 @@ use crate::model::Tick;
 use crate::session::{a_share_1m_bar_info, parse_tick_datetime};
 use anyhow::{anyhow, Context, Result};
 use csv::StringRecord;
+use encoding_rs::GBK;
+use std::borrow::Cow;
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -29,20 +31,30 @@ struct CsvColumns {
 }
 
 pub fn read_ticks_from_csv(path: &Path, options: &TickCsvReadOptions) -> Result<Vec<Tick>> {
+    let text = read_text_utf8_or_gbk(path)?;
+    let delimiter = detect_delimiter(&text);
+
     let mut rdr = csv::ReaderBuilder::new()
         .flexible(true)
-        .from_path(path)
-        .with_context(|| format!("open tick csv failed: {}", path.display()))?;
+        .delimiter(delimiter)
+        .from_reader(text.as_bytes());
 
     let headers = rdr.headers()?.clone();
-    let cols = detect_columns(&headers, options.default_symbol.is_some())?;
+    let cols = detect_columns(&headers, options.default_symbol.is_some()).with_context(|| {
+        format!(
+            "detect columns failed for {}. delimiter={:?}, headers={:?}",
+            path.display(),
+            delimiter as char,
+            headers
+        )
+    })?;
 
     let mut ticks = Vec::new();
     for (row_idx, record) in rdr.records().enumerate() {
-        let record = record.with_context(|| format!("read csv row {} failed", row_idx + 2))?;
+        let record = record.with_context(|| format!("read data row {} failed", row_idx + 2))?;
 
         if let Some(tick) = parse_record(row_idx as u64, &record, &cols, options)
-            .with_context(|| format!("parse csv row {} failed", row_idx + 2))?
+            .with_context(|| format!("parse data row {} failed", row_idx + 2))?
         {
             ticks.push(tick);
         }
@@ -58,15 +70,64 @@ pub fn read_ticks_from_csv(path: &Path, options: &TickCsvReadOptions) -> Result<
     Ok(ticks)
 }
 
+fn read_text_utf8_or_gbk(path: &Path) -> Result<String> {
+    let bytes = std::fs::read(path).with_context(|| format!("open tick text failed: {}", path.display()))?;
+
+    match String::from_utf8(bytes) {
+        Ok(s) => Ok(s),
+        Err(err) => {
+            let bytes = err.into_bytes();
+            let (decoded, _encoding_used, had_errors) = GBK.decode(&bytes);
+            if had_errors {
+                // GBK 解码仍有错误时也返回有损文本，避免因为少量异常字节导致全文件失败。
+                Ok(decoded.into_owned())
+            } else {
+                Ok(match decoded {
+                    Cow::Borrowed(s) => s.to_string(),
+                    Cow::Owned(s) => s,
+                })
+            }
+        }
+    }
+}
+
+fn detect_delimiter(text: &str) -> u8 {
+    let line = text
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or("");
+
+    let candidates = [(b'\t', '\t'), (b',', ','), (b';', ';'), (b'|', '|')];
+    let mut best = (b',', 0usize);
+    for (byte, ch) in candidates {
+        let count = line.matches(ch).count();
+        if count > best.1 {
+            best = (byte, count);
+        }
+    }
+    best.0
+}
+
 fn detect_columns(headers: &StringRecord, has_default_symbol: bool) -> Result<CsvColumns> {
-    let symbol = find_header(headers, &["symbol", "code", "股票代码", "证券代码", "代码"]);
-    let datetime = find_header(headers, &["datetime", "time", "成交时间", "时间", "日期时间"])
-        .ok_or_else(|| anyhow!("missing datetime column; supported headers: datetime,time,成交时间,时间,日期时间"))?;
-    let price = find_header(headers, &["price", "成交价", "成交价格", "最新价"])
-        .ok_or_else(|| anyhow!("missing price column; supported headers: price,成交价,成交价格,最新价"))?;
-    let volume = find_header(headers, &["volume", "vol", "qty", "成交量", "数量"])
-        .ok_or_else(|| anyhow!("missing volume column; supported headers: volume,vol,qty,成交量,数量"))?;
-    let amount = find_header(headers, &["amount", "成交额", "成交金额"]);
+    let symbol = find_header(headers, &["symbol", "code", "股票代码", "证券代码", "代码", "证券"]);
+    let datetime = find_header(
+        headers,
+        &[
+            "datetime",
+            "date_time",
+            "time",
+            "成交时间",
+            "时间",
+            "日期时间",
+            "成交日期时间",
+        ],
+    )
+    .ok_or_else(|| anyhow!("missing datetime column; supported headers: datetime,time,成交时间,时间,日期时间"))?;
+    let price = find_header(headers, &["price", "成交价", "成交价格", "最新价", "价格"])
+        .ok_or_else(|| anyhow!("missing price column; supported headers: price,成交价,成交价格,最新价,价格"))?;
+    let volume = find_header(headers, &["volume", "vol", "qty", "成交量", "数量", "成交数量"])
+        .ok_or_else(|| anyhow!("missing volume column; supported headers: volume,vol,qty,成交量,数量,成交数量"))?;
+    let amount = find_header(headers, &["amount", "成交额", "成交金额", "金额"]);
 
     if symbol.is_none() && !has_default_symbol {
         return Err(anyhow!(
@@ -158,12 +219,12 @@ fn parse_record(
 fn get(record: &StringRecord, idx: usize) -> Result<&str> {
     record
         .get(idx)
-        .ok_or_else(|| anyhow!("csv column index {} out of range", idx))
+        .ok_or_else(|| anyhow!("data column index {} out of range", idx))
 }
 
 fn parse_number(raw: &str) -> Result<f64> {
     let s = raw.trim().replace(',', "");
-    if s.is_empty() {
+    if s.is_empty() || s == "--" || s == "-" {
         return Err(anyhow!("empty number"));
     }
     s.parse::<f64>()
