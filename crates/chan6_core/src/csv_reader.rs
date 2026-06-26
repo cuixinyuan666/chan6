@@ -41,7 +41,7 @@ pub fn read_ticks_from_csv(path: &Path, options: &TickCsvReadOptions) -> Result<
     for (row_idx, record) in rdr.records().enumerate() {
         let record = record.with_context(|| format!("read csv row {} failed", row_idx + 2))?;
 
-        if let Some(tick) = parse_record(&record, &cols, options)
+        if let Some(tick) = parse_record(row_idx as u64, &record, &cols, options)
             .with_context(|| format!("parse csv row {} failed", row_idx + 2))?
         {
             ticks.push(tick);
@@ -52,7 +52,7 @@ pub fn read_ticks_from_csv(path: &Path, options: &TickCsvReadOptions) -> Result<
         a.symbol
             .cmp(&b.symbol)
             .then(a.ts.cmp(&b.ts))
-            .then(a.price_tick.cmp(&b.price_tick))
+            .then(a.seq.cmp(&b.seq))
     });
 
     Ok(ticks)
@@ -94,10 +94,13 @@ fn normalize_header(s: &str) -> String {
     s.trim()
         .trim_start_matches('\u{feff}')
         .to_ascii_lowercase()
-        .replace([' ', '_', '-'], "")
+        .chars()
+        .filter(|c| !matches!(c, ' ' | '_' | '-'))
+        .collect()
 }
 
 fn parse_record(
+    seq: u64,
     record: &StringRecord,
     cols: &CsvColumns,
     options: &TickCsvReadOptions,
@@ -142,6 +145,7 @@ fn parse_record(
     Ok(Some(Tick {
         symbol,
         ts: dt.and_utc().timestamp(),
+        seq,
         trading_day: bar.trading_day,
         minute: bar.minute,
         price_tick,
