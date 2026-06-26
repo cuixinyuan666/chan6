@@ -5,6 +5,7 @@ pub mod session;
 pub mod storage;
 pub mod tdx_reader;
 pub mod text_reader;
+pub mod chan;
 
 pub use csv_reader::{read_ticks_from_csv, TickCsvReadOptions};
 pub use model::{ChipAccumulator, ChipBin, ChipLevel, ImportConfig, ImportReport, KLine1m, Tick};
