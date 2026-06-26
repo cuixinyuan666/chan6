@@ -1,7 +1,12 @@
 use crate::csv_reader::{read_ticks_from_csv, TickCsvReadOptions};
-use crate::model::{ChipAccumulator, ChipBin, ImportConfig, ImportReport, KLine1m, SymbolImportReport, Tick};
+use crate::model::{
+    ChipAccumulator, ChipBin, ImportConfig, ImportReport, KLine1m, SymbolImportReport, Tick,
+};
 use crate::session::date_from_trading_day;
-use crate::storage::{delete_symbol_data, insert_chip_delta_1m, insert_chip_snapshot, insert_kline_1m, open_db, set_metadata};
+use crate::storage::{
+    delete_symbol_data, insert_chip_delta_1m, insert_chip_snapshot, insert_kline_1m, open_db,
+    query_chip_state, set_metadata,
+};
 use anyhow::{anyhow, Result};
 use rusqlite::{params, Connection};
 use std::collections::BTreeMap;
@@ -39,9 +44,17 @@ pub fn import_ticks_csv_to_sqlite(config: ImportConfig) -> Result<ImportReport> 
     }
 }
 
-fn import_sorted_ticks(conn: &Connection, ticks: &[Tick], config: &ImportConfig) -> Result<ImportReport> {
+fn import_sorted_ticks(
+    conn: &Connection,
+    ticks: &[Tick],
+    config: &ImportConfig,
+) -> Result<ImportReport> {
     set_metadata(conn, "price_scale", &config.price_scale.to_string())?;
-    set_metadata(conn, "snapshot_interval", &config.snapshot_interval.to_string())?;
+    set_metadata(
+        conn,
+        "snapshot_interval",
+        &config.snapshot_interval.to_string(),
+    )?;
 
     let mut reports = Vec::new();
     let mut start = 0usize;
@@ -58,6 +71,7 @@ fn import_sorted_ticks(conn: &Connection, ticks: &[Tick], config: &ImportConfig)
         }
 
         let start_bar_id = next_bar_id_for_symbol(conn, &symbol)?;
+        let initial_chip_acc = load_initial_chip_acc(conn, &symbol, start_bar_id)?;
         let report = process_symbol_ticks(
             conn,
             &symbol,
@@ -65,6 +79,7 @@ fn import_sorted_ticks(conn: &Connection, ticks: &[Tick], config: &ImportConfig)
             config.price_scale,
             config.snapshot_interval,
             start_bar_id,
+            initial_chip_acc,
         )?;
         reports.push(report);
         start = end;
@@ -87,6 +102,23 @@ fn next_bar_id_for_symbol(conn: &Connection, symbol: &str) -> Result<i64> {
     Ok(max_id.map(|x| x + 1).unwrap_or(0))
 }
 
+fn load_initial_chip_acc(
+    conn: &Connection,
+    symbol: &str,
+    start_bar_id: i64,
+) -> Result<ChipAccumulator> {
+    if start_bar_id <= 0 {
+        return Ok(ChipAccumulator::default());
+    }
+
+    let levels = query_chip_state(conn, symbol, start_bar_id - 1)?;
+    let mut acc = ChipAccumulator::default();
+    for level in &levels {
+        acc.add_level(level);
+    }
+    Ok(acc)
+}
+
 fn process_symbol_ticks(
     conn: &Connection,
     symbol: &str,
@@ -94,8 +126,16 @@ fn process_symbol_ticks(
     price_scale: f64,
     snapshot_interval: i64,
     start_bar_id: i64,
+    initial_chip_acc: ChipAccumulator,
 ) -> Result<SymbolImportReport> {
-    let mut processor = TickProcessor::new(conn, symbol, price_scale, snapshot_interval, start_bar_id);
+    let mut processor = TickProcessor::new(
+        conn,
+        symbol,
+        price_scale,
+        snapshot_interval,
+        start_bar_id,
+        initial_chip_acc,
+    );
 
     for tick in ticks {
         processor.on_tick(tick)?;
@@ -124,7 +164,14 @@ struct TickProcessor<'a> {
 }
 
 impl<'a> TickProcessor<'a> {
-    fn new(conn: &'a Connection, symbol: &str, price_scale: f64, snapshot_interval: i64, start_bar_id: i64) -> Self {
+    fn new(
+        conn: &'a Connection,
+        symbol: &str,
+        price_scale: f64,
+        snapshot_interval: i64,
+        start_bar_id: i64,
+        initial_chip_acc: ChipAccumulator,
+    ) -> Self {
         Self {
             conn,
             symbol: symbol.to_string(),
@@ -133,7 +180,7 @@ impl<'a> TickProcessor<'a> {
             current_key: None,
             current_kline: None,
             current_delta: BTreeMap::new(),
-            chip_acc: ChipAccumulator::default(),
+            chip_acc: initial_chip_acc,
             next_bar_id: start_bar_id,
             kline_count: 0,
         }
@@ -175,7 +222,13 @@ impl<'a> TickProcessor<'a> {
         insert_chip_delta_1m(self.conn, &self.symbol, kline.bar_id, &self.current_delta)?;
 
         if kline.bar_id % self.snapshot_interval == 0 {
-            insert_chip_snapshot(self.conn, &self.symbol, kline.bar_id, &self.chip_acc, self.price_scale)?;
+            insert_chip_snapshot(
+                self.conn,
+                &self.symbol,
+                kline.bar_id,
+                &self.chip_acc,
+                self.price_scale,
+            )?;
         }
 
         self.kline_count += 1;
@@ -184,7 +237,8 @@ impl<'a> TickProcessor<'a> {
 }
 
 fn new_kline_from_tick(tick: &Tick, bar_id: i64) -> Result<KLine1m> {
-    let date = date_from_trading_day(tick.trading_day).ok_or_else(|| anyhow!("invalid trading_day: {}", tick.trading_day))?;
+    let date = date_from_trading_day(tick.trading_day)
+        .ok_or_else(|| anyhow!("invalid trading_day: {}", tick.trading_day))?;
     let hour = tick.minute / 100;
     let minute = tick.minute % 100;
     let start_dt = date
