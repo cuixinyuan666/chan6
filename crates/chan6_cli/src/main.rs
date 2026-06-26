@@ -143,6 +143,29 @@ enum Commands {
         #[arg(long, default_value_t = 0)]
         top: usize,
     },
+
+    QueryChartAt {
+        #[arg(long)]
+        db: PathBuf,
+
+        #[arg(long)]
+        symbol: String,
+
+        #[arg(long)]
+        day: i32,
+
+        #[arg(long)]
+        minute: i32,
+
+        #[arg(long, default_value_t = 120)]
+        before: i64,
+
+        #[arg(long, default_value_t = 120)]
+        after: i64,
+
+        #[arg(long, default_value_t = 0)]
+        top: usize,
+    },
 }
 
 fn main() -> Result<()> {
@@ -474,6 +497,63 @@ fn main() -> Result<()> {
                     "chip": chip,
                 }))?
             );
+        }
+        Commands::QueryChartAt {
+            db,
+            symbol,
+            day,
+            minute,
+            before,
+            after,
+            top,
+        } => {
+            let conn = open_existing_db(&db)?;
+            let target = query_kline_1m_at(&conn, &symbol, day, minute)?;
+
+            if let Some(target) = target {
+                let before = before.max(0);
+                let after = after.max(0);
+                let target_bar_id = target.bar_id;
+                let window_offset = (target_bar_id - before).max(0);
+                let window_limit = before + after + 1;
+
+                let kline = query_kline_1m(&conn, &symbol, window_offset, window_limit)?;
+                let target_index = kline.iter().position(|x| x.bar_id == target_bar_id);
+
+                let mut chip = query_chip_state(&conn, &symbol, target_bar_id)?;
+
+                if top > 0 {
+                    chip.sort_by(|a, b| {
+                        b.volume
+                            .partial_cmp(&a.volume)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                    chip.truncate(top);
+                    chip.sort_by_key(|x| x.price_tick);
+                }
+
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "symbol": symbol,
+                        "day": day,
+                        "minute": minute,
+                        "before": before,
+                        "after": after,
+                        "window_offset": window_offset,
+                        "window_limit": window_limit,
+                        "kline_count": kline.len(),
+                        "target_bar_id": target_bar_id,
+                        "target_index": target_index,
+                        "chip_bar_id": target_bar_id,
+                        "target": target,
+                        "kline": kline,
+                        "chip": chip,
+                    }))?
+                );
+            } else {
+                println!("null");
+            }
         }
     }
 
