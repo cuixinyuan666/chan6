@@ -20,25 +20,40 @@ impl Default for TickCsvReadOptions {
 }
 
 pub fn read_ticks_from_csv(path: &Path, options: &TickCsvReadOptions) -> Result<Vec<Tick>> {
-    let text_result = read_ticks_from_text(
-        path,
-        &TickTextReadOptions {
-            default_symbol: options.default_symbol.clone(),
-            price_scale: options.price_scale,
-        },
-    );
+    let is_txt = path
+        .extension()
+        .and_then(|x| x.to_str())
+        .map(|x| x.eq_ignore_ascii_case("txt"))
+        .unwrap_or(false);
 
+    if is_txt {
+        if let Ok(ticks) = read_ticks_from_tdx_text(path, &tdx_options(options)) {
+            if !ticks.is_empty() {
+                return Ok(ticks);
+            }
+        }
+    }
+
+    let text_result = read_ticks_from_text(path, &text_options(options));
     match text_result {
         Ok(ticks) => Ok(ticks),
-        Err(text_err) => match read_ticks_from_tdx_text(
-            path,
-            &TdxReadOptions {
-                default_symbol: options.default_symbol.clone(),
-                price_scale: options.price_scale,
-            },
-        ) {
+        Err(text_err) => match read_ticks_from_tdx_text(path, &tdx_options(options)) {
             Ok(ticks) => Ok(ticks),
             Err(tdx_err) => Err(anyhow!("text parser failed: {text_err}; tdx parser failed: {tdx_err}")),
         },
+    }
+}
+
+fn text_options(options: &TickCsvReadOptions) -> TickTextReadOptions {
+    TickTextReadOptions {
+        default_symbol: options.default_symbol.clone(),
+        price_scale: options.price_scale,
+    }
+}
+
+fn tdx_options(options: &TickCsvReadOptions) -> TdxReadOptions {
+    TdxReadOptions {
+        default_symbol: options.default_symbol.clone(),
+        price_scale: options.price_scale,
     }
 }
