@@ -178,6 +178,18 @@ mod tests {
         );
     }
 
+    #[test]
+    fn chanpy_stage1_end_is_peak_fail_gold_matches_rust_pipeline() {
+        assert_chanpy_gold_matches_rust_pipeline(
+            include_str!(
+                "../../../../fixtures/chanpy_stage1/input/stage1_end_is_peak_fail_candidate.csv"
+            ),
+            include_str!(
+                "../../../../fixtures/chanpy_stage1/gold/stage1_end_is_peak_fail_candidate_chanpy_gold.json"
+            ),
+        );
+    }
+
     fn assert_chanpy_gold_matches_rust_pipeline(csv_text: &str, gold_text: &str) {
         let klines = parse_stage1_csv(csv_text);
         let gold: Stage1Gold =
