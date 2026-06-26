@@ -448,6 +448,10 @@ fn main() -> Result<()> {
                         "volume": kline.volume,
                         "amount": kline.amount,
                         "trade_count": kline.trade_count,
+                        "chip_scope": "full_history_to_target_bar",
+                        "chip_bar_id": kline.bar_id,
+                        "chip_truncated": top > 0,
+                        "chip_top": top,
                         "chip": levels,
                     }))?
                 );
@@ -493,6 +497,13 @@ fn main() -> Result<()> {
                     "limit": limit,
                     "kline_count": kline.len(),
                     "chip_bar_id": resolved_chip_bar_id,
+                    "chip_scope": if resolved_chip_bar_id.is_some() {
+                        "full_history_to_chip_bar"
+                    } else {
+                        "none"
+                    },
+                    "chip_truncated": top > 0,
+                    "chip_top": top,
                     "kline": kline,
                     "chip": chip,
                 }))?
@@ -546,6 +557,9 @@ fn main() -> Result<()> {
                         "target_bar_id": target_bar_id,
                         "target_index": target_index,
                         "chip_bar_id": target_bar_id,
+                        "chip_scope": "full_history_to_target_bar",
+                        "chip_truncated": top > 0,
+                        "chip_top": top,
                         "target": target,
                         "kline": kline,
                         "chip": chip,
