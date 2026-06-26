@@ -44,7 +44,8 @@ pub fn read_ticks_from_text(path: &Path, opt: &TickTextReadOptions) -> Result<Ve
 
     let mut ticks = Vec::new();
     for (idx, row) in rdr.records().enumerate() {
-        let row = row.with_context(|| format!("read row {} failed", idx + prepared.skipped_lines + 2))?;
+        let row =
+            row.with_context(|| format!("read row {} failed", idx + prepared.skipped_lines + 2))?;
         if let Some(tick) = parse_row(idx as u64, &row, &cols, opt, default_date)
             .with_context(|| format!("parse row {} failed", idx + prepared.skipped_lines + 2))?
         {
@@ -68,7 +69,8 @@ struct PreparedTable {
 }
 
 fn read_text(path: &Path) -> Result<String> {
-    let bytes = std::fs::read(path).with_context(|| format!("open tick text failed: {}", path.display()))?;
+    let bytes = std::fs::read(path)
+        .with_context(|| format!("open tick text failed: {}", path.display()))?;
     match String::from_utf8(bytes) {
         Ok(s) => Ok(s),
         Err(err) => {
@@ -87,7 +89,13 @@ fn prepare_table(path: &Path, raw: &str) -> Result<PreparedTable> {
     let header_idx = lines
         .iter()
         .position(|line| looks_like_header(line))
-        .ok_or_else(|| anyhow!("cannot find header line in {}. first lines: {}", path.display(), preview(raw)))?;
+        .ok_or_else(|| {
+            anyhow!(
+                "cannot find header line in {}. first lines: {}",
+                path.display(),
+                preview(raw)
+            )
+        })?;
 
     let delimiter0 = delimiter_of(lines[header_idx]);
     let use_tab = delimiter0 == b' ';
@@ -95,7 +103,10 @@ fn prepare_table(path: &Path, raw: &str) -> Result<PreparedTable> {
         .iter()
         .map(|line| {
             if use_tab {
-                line.trim().split_whitespace().collect::<Vec<_>>().join("\t")
+                line.trim()
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join("\t")
             } else {
                 line.trim().to_string()
             }
@@ -113,9 +124,37 @@ fn prepare_table(path: &Path, raw: &str) -> Result<PreparedTable> {
 
 fn looks_like_header(line: &str) -> bool {
     let n = norm(line);
-    contains_any(&n, &["datetime", "time", "\u{6210}\u{4ea4}\u{65f6}\u{95f4}", "\u{65f6}\u{95f4}", "\u{65e5}\u{671f}\u{65f6}\u{95f4}"])
-        && contains_any(&n, &["price", "\u{6210}\u{4ea4}\u{4ef7}", "\u{6210}\u{4ea4}\u{4ef7}\u{683c}", "\u{6700}\u{65b0}\u{4ef7}", "\u{4ef7}\u{683c}"])
-        && contains_any(&n, &["volume", "vol", "qty", "\u{6210}\u{4ea4}\u{91cf}", "\u{6210}\u{4ea4}", "\u{6570}\u{91cf}", "\u{6210}\u{4ea4}\u{6570}\u{91cf}", "\u{624b}\u{6570}"])
+    contains_any(
+        &n,
+        &[
+            "datetime",
+            "time",
+            "\u{6210}\u{4ea4}\u{65f6}\u{95f4}",
+            "\u{65f6}\u{95f4}",
+            "\u{65e5}\u{671f}\u{65f6}\u{95f4}",
+        ],
+    ) && contains_any(
+        &n,
+        &[
+            "price",
+            "\u{6210}\u{4ea4}\u{4ef7}",
+            "\u{6210}\u{4ea4}\u{4ef7}\u{683c}",
+            "\u{6700}\u{65b0}\u{4ef7}",
+            "\u{4ef7}\u{683c}",
+        ],
+    ) && contains_any(
+        &n,
+        &[
+            "volume",
+            "vol",
+            "qty",
+            "\u{6210}\u{4ea4}\u{91cf}",
+            "\u{6210}\u{4ea4}",
+            "\u{6570}\u{91cf}",
+            "\u{6210}\u{4ea4}\u{6570}\u{91cf}",
+            "\u{624b}\u{6570}",
+        ],
+    )
 }
 
 fn contains_any(n: &str, words: &[&str]) -> bool {
@@ -135,14 +174,62 @@ fn delimiter_of(line: &str) -> u8 {
 }
 
 fn detect_columns(headers: &StringRecord, has_default_symbol: bool) -> Result<Columns> {
-    let symbol = find(headers, &["symbol", "code", "\u{80a1}\u{7968}\u{4ee3}\u{7801}", "\u{8bc1}\u{5238}\u{4ee3}\u{7801}", "\u{4ee3}\u{7801}", "\u{8bc1}\u{5238}"]);
-    let time = find(headers, &["datetime", "time", "\u{6210}\u{4ea4}\u{65f6}\u{95f4}", "\u{65f6}\u{95f4}", "\u{65e5}\u{671f}\u{65f6}\u{95f4}"])
-        .ok_or_else(|| anyhow!("missing time column"))?;
-    let price = find(headers, &["price", "\u{6210}\u{4ea4}\u{4ef7}", "\u{6210}\u{4ea4}\u{4ef7}\u{683c}", "\u{6700}\u{65b0}\u{4ef7}", "\u{4ef7}\u{683c}"])
-        .ok_or_else(|| anyhow!("missing price column"))?;
-    let volume = find(headers, &["volume", "vol", "qty", "\u{6210}\u{4ea4}\u{91cf}", "\u{6210}\u{4ea4}", "\u{6570}\u{91cf}", "\u{6210}\u{4ea4}\u{6570}\u{91cf}", "\u{624b}\u{6570}"])
-        .ok_or_else(|| anyhow!("missing volume column"))?;
-    let amount = find(headers, &["amount", "\u{6210}\u{4ea4}\u{989d}", "\u{6210}\u{4ea4}\u{91d1}\u{989d}", "\u{91d1}\u{989d}"]);
+    let symbol = find(
+        headers,
+        &[
+            "symbol",
+            "code",
+            "\u{80a1}\u{7968}\u{4ee3}\u{7801}",
+            "\u{8bc1}\u{5238}\u{4ee3}\u{7801}",
+            "\u{4ee3}\u{7801}",
+            "\u{8bc1}\u{5238}",
+        ],
+    );
+    let time = find(
+        headers,
+        &[
+            "datetime",
+            "time",
+            "\u{6210}\u{4ea4}\u{65f6}\u{95f4}",
+            "\u{65f6}\u{95f4}",
+            "\u{65e5}\u{671f}\u{65f6}\u{95f4}",
+        ],
+    )
+    .ok_or_else(|| anyhow!("missing time column"))?;
+    let price = find(
+        headers,
+        &[
+            "price",
+            "\u{6210}\u{4ea4}\u{4ef7}",
+            "\u{6210}\u{4ea4}\u{4ef7}\u{683c}",
+            "\u{6700}\u{65b0}\u{4ef7}",
+            "\u{4ef7}\u{683c}",
+        ],
+    )
+    .ok_or_else(|| anyhow!("missing price column"))?;
+    let volume = find(
+        headers,
+        &[
+            "volume",
+            "vol",
+            "qty",
+            "\u{6210}\u{4ea4}\u{91cf}",
+            "\u{6210}\u{4ea4}",
+            "\u{6570}\u{91cf}",
+            "\u{6210}\u{4ea4}\u{6570}\u{91cf}",
+            "\u{624b}\u{6570}",
+        ],
+    )
+    .ok_or_else(|| anyhow!("missing volume column"))?;
+    let amount = find(
+        headers,
+        &[
+            "amount",
+            "\u{6210}\u{4ea4}\u{989d}",
+            "\u{6210}\u{4ea4}\u{91d1}\u{989d}",
+            "\u{91d1}\u{989d}",
+        ],
+    );
 
     if symbol.is_none() && !has_default_symbol {
         return Err(anyhow!("missing symbol column and no default symbol"));
@@ -202,7 +289,11 @@ fn parse_row(
     let amount = match cols.amount {
         Some(i) => {
             let s = cell(row, i)?.trim();
-            if s.is_empty() { price * volume } else { num(s)? }
+            if s.is_empty() {
+                price * volume
+            } else {
+                num(s)?
+            }
         }
         None => price * volume,
     };

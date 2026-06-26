@@ -1,5 +1,7 @@
 use anyhow::{bail, Result};
-use chan6_core::{import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, storage::open_db, ImportConfig};
+use chan6_core::{
+    import_ticks_csv_to_sqlite, query_chip_state, query_kline_1m, storage::open_db, ImportConfig,
+};
 use clap::{Parser, Subcommand};
 use rusqlite::Connection;
 use serde_json::json;
@@ -79,7 +81,14 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::ImportTick { csv, db, symbol, price_scale, snapshot_interval, replace } => {
+        Commands::ImportTick {
+            csv,
+            db,
+            symbol,
+            price_scale,
+            snapshot_interval,
+            replace,
+        } => {
             let report = import_ticks_csv_to_sqlite(ImportConfig {
                 csv_path: csv,
                 db_path: db,
@@ -90,7 +99,14 @@ fn main() -> Result<()> {
             })?;
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
-        Commands::ImportDir { dir, db, recursive, price_scale, snapshot_interval, replace } => {
+        Commands::ImportDir {
+            dir,
+            db,
+            recursive,
+            price_scale,
+            snapshot_interval,
+            replace,
+        } => {
             let files = collect_tick_files(&dir, recursive)?;
             if files.is_empty() {
                 bail!("no csv/txt files found in {}", dir.display());
@@ -163,16 +179,30 @@ fn main() -> Result<()> {
             let stats = db_stats(&conn, &db)?;
             println!("{}", serde_json::to_string_pretty(&stats)?);
         }
-        Commands::QueryKline { db, symbol, offset, limit } => {
+        Commands::QueryKline {
+            db,
+            symbol,
+            offset,
+            limit,
+        } => {
             let conn = open_existing_db(&db)?;
             let rows = query_kline_1m(&conn, &symbol, offset, limit)?;
             println!("{}", serde_json::to_string_pretty(&rows)?);
         }
-        Commands::QueryChip { db, symbol, bar_id, top } => {
+        Commands::QueryChip {
+            db,
+            symbol,
+            bar_id,
+            top,
+        } => {
             let conn = open_existing_db(&db)?;
             let mut levels = query_chip_state(&conn, &symbol, bar_id)?;
             if top > 0 {
-                levels.sort_by(|a, b| b.volume.partial_cmp(&a.volume).unwrap_or(std::cmp::Ordering::Equal));
+                levels.sort_by(|a, b| {
+                    b.volume
+                        .partial_cmp(&a.volume)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
                 levels.truncate(top);
                 levels.sort_by_key(|x| x.price_tick);
             }
@@ -185,7 +215,10 @@ fn main() -> Result<()> {
 
 fn open_existing_db(path: &Path) -> Result<Connection> {
     if !path.exists() {
-        bail!("database does not exist: {}. Run import-tick or import-dir first.", path.display());
+        bail!(
+            "database does not exist: {}. Run import-tick or import-dir first.",
+            path.display()
+        );
     }
     open_db(path)
 }
@@ -240,12 +273,14 @@ fn infer_symbol_from_file_name(path: &Path) -> Option<String> {
 fn list_symbols(conn: &Connection) -> Result<Vec<String>> {
     let mut stmt = conn.prepare("SELECT DISTINCT symbol FROM kline_1m ORDER BY symbol ASC")?;
     let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
-    rows.collect::<std::result::Result<Vec<_>, _>>().map_err(Into::into)
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Into::into)
 }
 
 fn db_stats(conn: &Connection, db: &Path) -> Result<serde_json::Value> {
     let price_scale = read_metadata(conn, "price_scale")?.unwrap_or_else(|| "1000".to_string());
-    let snapshot_interval = read_metadata(conn, "snapshot_interval")?.unwrap_or_else(|| "60".to_string());
+    let snapshot_interval =
+        read_metadata(conn, "snapshot_interval")?.unwrap_or_else(|| "60".to_string());
     let symbols = list_symbol_stats(conn)?;
     Ok(json!({
         "db_path": db.display().to_string(),
@@ -306,5 +341,6 @@ fn list_symbol_stats(conn: &Connection) -> Result<Vec<serde_json::Value>> {
         }))
     })?;
 
-    rows.collect::<std::result::Result<Vec<_>, _>>().map_err(Into::into)
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Into::into)
 }

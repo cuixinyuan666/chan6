@@ -16,7 +16,12 @@ pub fn read_ticks_from_tdx_text(path: &Path, opt: &TdxReadOptions) -> Result<Vec
     let raw = read_text(path)?;
     let date = date_from_path(path)
         .or_else(|| date_from_head(&raw))
-        .ok_or_else(|| anyhow!("cannot infer trading date from file name or title: {}", path.display()))?;
+        .ok_or_else(|| {
+            anyhow!(
+                "cannot infer trading date from file name or title: {}",
+                path.display()
+            )
+        })?;
     let symbol = opt
         .default_symbol
         .clone()
@@ -101,7 +106,8 @@ fn parse_num(raw: &str) -> Result<f64> {
 }
 
 fn read_text(path: &Path) -> Result<String> {
-    let bytes = std::fs::read(path).with_context(|| format!("open tdx text failed: {}", path.display()))?;
+    let bytes =
+        std::fs::read(path).with_context(|| format!("open tdx text failed: {}", path.display()))?;
     match String::from_utf8(bytes) {
         Ok(s) => Ok(s),
         Err(err) => {

@@ -12,7 +12,8 @@ pub fn open_db(path: &Path) -> Result<Connection> {
         }
     }
 
-    let conn = Connection::open(path).with_context(|| format!("open sqlite failed: {}", path.display()))?;
+    let conn = Connection::open(path)
+        .with_context(|| format!("open sqlite failed: {}", path.display()))?;
     init_db(&conn)?;
     Ok(conn)
 }
@@ -98,8 +99,14 @@ pub fn read_price_scale(conn: &Connection) -> Result<f64> {
 
 pub fn delete_symbol_data(conn: &Connection, symbol: &str) -> Result<()> {
     conn.execute("DELETE FROM kline_1m WHERE symbol = ?1", params![symbol])?;
-    conn.execute("DELETE FROM chip_delta_1m WHERE symbol = ?1", params![symbol])?;
-    conn.execute("DELETE FROM chip_snapshot WHERE symbol = ?1", params![symbol])?;
+    conn.execute(
+        "DELETE FROM chip_delta_1m WHERE symbol = ?1",
+        params![symbol],
+    )?;
+    conn.execute(
+        "DELETE FROM chip_snapshot WHERE symbol = ?1",
+        params![symbol],
+    )?;
     Ok(())
 }
 
@@ -215,7 +222,11 @@ pub fn query_kline_1m(
         .map_err(Into::into)
 }
 
-pub fn query_chip_state(conn: &Connection, symbol: &str, target_bar_id: i64) -> Result<Vec<ChipLevel>> {
+pub fn query_chip_state(
+    conn: &Connection,
+    symbol: &str,
+    target_bar_id: i64,
+) -> Result<Vec<ChipLevel>> {
     let price_scale = read_price_scale(conn)?;
     let (snapshot_bar_id, mut acc) = load_nearest_snapshot(conn, symbol, target_bar_id)?;
     apply_deltas(conn, symbol, snapshot_bar_id + 1, target_bar_id, &mut acc)?;

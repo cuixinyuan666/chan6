@@ -39,7 +39,9 @@ pub fn read_ticks_from_csv(path: &Path, options: &TickCsvReadOptions) -> Result<
         Ok(ticks) => Ok(ticks),
         Err(text_err) => match read_ticks_from_tdx_text(path, &tdx_options(options)) {
             Ok(ticks) => Ok(ticks),
-            Err(tdx_err) => Err(anyhow!("text parser failed: {text_err}; tdx parser failed: {tdx_err}")),
+            Err(tdx_err) => Err(anyhow!(
+                "text parser failed: {text_err}; tdx parser failed: {tdx_err}"
+            )),
         },
     }
 }
