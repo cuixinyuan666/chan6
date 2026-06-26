@@ -11,6 +11,7 @@
 //! - Rhythm lines are computed by Rust and rendered by Flutter.
 
 pub mod config;
+pub mod fx;
 pub mod include;
 pub mod model;
 pub mod standard;
