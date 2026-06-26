@@ -410,7 +410,8 @@ fn list_symbol_stats(conn: &Connection) -> Result<Vec<serde_json::Value>> {
             MIN(k.trading_day) AS min_trading_day,
             MAX(k.trading_day) AS max_trading_day,
             COALESCE(d.chip_delta_rows, 0) AS chip_delta_rows,
-            COALESCE(s.snapshot_count, 0) AS snapshot_count
+            COALESCE(s.snapshot_count, 0) AS snapshot_count,
+            COALESCE(f.source_file_count, 0) AS source_file_count
         FROM kline_1m k
         LEFT JOIN (
             SELECT symbol, COUNT(*) AS chip_delta_rows
@@ -422,6 +423,11 @@ fn list_symbol_stats(conn: &Connection) -> Result<Vec<serde_json::Value>> {
             FROM chip_snapshot
             GROUP BY symbol
         ) s ON s.symbol = k.symbol
+        LEFT JOIN (
+            SELECT symbol, COUNT(*) AS source_file_count
+            FROM source_files
+            GROUP BY symbol
+        ) f ON f.symbol = k.symbol
         GROUP BY k.symbol
         ORDER BY k.symbol ASC
         "#,
@@ -437,6 +443,7 @@ fn list_symbol_stats(conn: &Connection) -> Result<Vec<serde_json::Value>> {
             "max_trading_day": row.get::<_, Option<i32>>(5)?,
             "chip_delta_rows": row.get::<_, i64>(6)?,
             "snapshot_count": row.get::<_, i64>(7)?,
+            "source_file_count": row.get::<_, i64>(8)?,
         }))
     })?;
 
