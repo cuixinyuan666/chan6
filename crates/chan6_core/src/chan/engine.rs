@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::KLine1m;
 
-use super::bi::build_bis;
+use super::bi::build_bis_with_merged_bars;
 use super::config::ChanConfig;
 use super::fx::detect_fxs;
 use super::include::merge_included_bars;
@@ -46,7 +46,7 @@ pub fn analyze_chan_basic_with_config(
     let bars: Vec<ChanBar> = klines.iter().map(ChanBar::from).collect();
     let merged_bars = merge_included_bars(&bars);
     let fx = detect_fxs(&merged_bars);
-    let bi = build_bis(&fx);
+    let bi = build_bis_with_merged_bars(&fx, &merged_bars);
 
     let symbol = bars
         .first()
