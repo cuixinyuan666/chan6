@@ -26,6 +26,77 @@ class KLinePoint {
   final double amount;
 }
 
+class MergedBox {
+  const MergedBox({
+    required this.index,
+    required this.startBarId,
+    required this.endBarId,
+    required this.high,
+    required this.low,
+    required this.isMerged,
+    required this.highBarId,
+    required this.lowBarId,
+    required this.calcHigh,
+    required this.calcLow,
+    required this.calcHighBarId,
+    required this.calcLowBarId,
+  });
+
+  final int index;
+  final int startBarId;
+  final int endBarId;
+  final double high;
+  final double low;
+  final bool isMerged;
+  final int highBarId;
+  final int lowBarId;
+  final double calcHigh;
+  final double calcLow;
+  final int calcHighBarId;
+  final int calcLowBarId;
+}
+
+class FxLinePoint {
+  const FxLinePoint({
+    required this.index,
+    required this.kind,
+    required this.mergedIndex,
+    required this.barId,
+    required this.price,
+    required this.confirmed,
+  });
+
+  final int index;
+  final String kind;
+  final int mergedIndex;
+  final int barId;
+  final double price;
+  final bool confirmed;
+
+  bool get isTop => kind == 'top';
+  bool get isBottom => kind == 'bottom';
+}
+
+class BiLinePoint {
+  const BiLinePoint({
+    required this.index,
+    required this.direction,
+    required this.startBarId,
+    required this.startPrice,
+    required this.endBarId,
+    required this.endPrice,
+    required this.confirmed,
+  });
+
+  final int index;
+  final String direction;
+  final int startBarId;
+  final double startPrice;
+  final int endBarId;
+  final double endPrice;
+  final bool confirmed;
+}
+
 class ChipLevel {
   const ChipLevel({
     required this.priceTick,
@@ -55,6 +126,9 @@ class ChartMeta {
     this.targetBarId,
     this.targetIndex,
     this.klineCount,
+    this.mergedCount,
+    this.fxCount,
+    this.biCount,
     this.offset,
     this.limit,
     this.day,
@@ -77,6 +151,9 @@ class ChartMeta {
   final int? targetBarId;
   final int? targetIndex;
   final int? klineCount;
+  final int? mergedCount;
+  final int? fxCount;
+  final int? biCount;
   final int? offset;
   final int? limit;
   final int? day;
@@ -152,6 +229,9 @@ class ChartState {
     required this.symbol,
     required this.kline,
     required this.chip,
+    required this.mergedBoxes,
+    required this.fxLines,
+    required this.biLines,
     required this.meta,
     required this.viewport,
     required this.crosshair,
@@ -161,6 +241,9 @@ class ChartState {
   final String symbol;
   final List<KLinePoint> kline;
   final List<ChipLevel> chip;
+  final List<MergedBox> mergedBoxes;
+  final List<FxLinePoint> fxLines;
+  final List<BiLinePoint> biLines;
   final ChartMeta meta;
   final ChartViewport viewport;
   final CrosshairState crosshair;
@@ -170,6 +253,9 @@ class ChartState {
     String? symbol,
     List<KLinePoint>? kline,
     List<ChipLevel>? chip,
+    List<MergedBox>? mergedBoxes,
+    List<FxLinePoint>? fxLines,
+    List<BiLinePoint>? biLines,
     ChartMeta? meta,
     ChartViewport? viewport,
     CrosshairState? crosshair,
@@ -179,6 +265,9 @@ class ChartState {
       symbol: symbol ?? this.symbol,
       kline: kline ?? this.kline,
       chip: chip ?? this.chip,
+      mergedBoxes: mergedBoxes ?? this.mergedBoxes,
+      fxLines: fxLines ?? this.fxLines,
+      biLines: biLines ?? this.biLines,
       meta: meta ?? this.meta,
       viewport: viewport ?? this.viewport,
       crosshair: crosshair ?? this.crosshair,
@@ -240,6 +329,9 @@ class ChartState {
       symbol: 'DEMO',
       kline: kline,
       chip: chip,
+      mergedBoxes: const [],
+      fxLines: const [],
+      biLines: const [],
       meta: const ChartMeta(
         schemaVersion: 1,
         query: 'demo',
