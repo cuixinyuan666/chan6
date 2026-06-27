@@ -1,17 +1,9 @@
-use super::model::{ChanBi, ChanFx, ChanFxKind};
+use super::model::{ChanBi, ChanFx, ChanFxKind, ChanMergedBar};
 
 /// Minimum distance between two FX merged indexes for first-stage BI construction.
 ///
 /// This is intentionally aligned to chan.py strict BI behavior for the stage-1
 /// fixtures: adjacent top/bottom FX are not enough to form a BI.
-///
-/// Stage-1 BI construction follows the observed hichan first-BI flow:
-/// - before the first BI exists, FX are kept in a free candidate list;
-/// - when a new FX arrives, the first opposite free FX that can make a BI wins;
-/// - this means a later stronger same-kind FX must not blindly replace an earlier
-///   free FX before can_make_bi has been tested;
-/// - after the first BI, later BI candidates are built from the previous BI end;
-/// - output anchors always use `bar_id + price`.
 pub const DEFAULT_MIN_BI_MERGED_SPAN: usize = 4;
 
 pub fn build_bis(fxs: &[ChanFx]) -> Vec<ChanBi> {
@@ -19,6 +11,18 @@ pub fn build_bis(fxs: &[ChanFx]) -> Vec<ChanBi> {
 }
 
 pub fn build_bis_with_min_span(fxs: &[ChanFx], min_merged_span: usize) -> Vec<ChanBi> {
+    build_bis_internal(fxs, min_merged_span, None)
+}
+
+pub fn build_bis_with_merged_bars(fxs: &[ChanFx], merged_bars: &[ChanMergedBar]) -> Vec<ChanBi> {
+    build_bis_internal(fxs, DEFAULT_MIN_BI_MERGED_SPAN, Some(merged_bars))
+}
+
+fn build_bis_internal(
+    fxs: &[ChanFx],
+    min_merged_span: usize,
+    merged_bars: Option<&[ChanMergedBar]>,
+) -> Vec<ChanBi> {
     let mut bis = Vec::new();
     let mut free_fxs: Vec<&ChanFx> = Vec::new();
     let mut last_bi_end: Option<&ChanFx> = None;
@@ -28,7 +32,7 @@ pub fn build_bis_with_min_span(fxs: &[ChanFx], min_merged_span: usize) -> Vec<Ch
             if fx.kind == last_end.kind {
                 continue;
             }
-            if fx_span_is_enough(last_end, fx, min_merged_span) {
+            if can_make_bi(last_end, fx, min_merged_span, merged_bars) {
                 push_bi(&mut bis, last_end, fx);
                 last_bi_end = Some(fx);
             }
@@ -40,7 +44,7 @@ pub fn build_bis_with_min_span(fxs: &[ChanFx], min_merged_span: usize) -> Vec<Ch
             if existing.kind == fx.kind {
                 continue;
             }
-            if fx_span_is_enough(existing, fx, min_merged_span) {
+            if can_make_bi(existing, fx, min_merged_span, merged_bars) {
                 first_valid_start = Some(*existing);
                 break;
             }
@@ -58,6 +62,62 @@ pub fn build_bis_with_min_span(fxs: &[ChanFx], min_merged_span: usize) -> Vec<Ch
     bis
 }
 
+fn can_make_bi(
+    start: &ChanFx,
+    end: &ChanFx,
+    min_merged_span: usize,
+    merged_bars: Option<&[ChanMergedBar]>,
+) -> bool {
+    fx_span_is_enough(start, end, min_merged_span)
+        && check_fx_valid(start, end, merged_bars)
+}
+
+fn check_fx_valid(
+    start: &ChanFx,
+    end: &ChanFx,
+    merged_bars: Option<&[ChanMergedBar]>,
+) -> bool {
+    let Some(merged_bars) = merged_bars else {
+        return true;
+    };
+
+    match (start.kind, end.kind) {
+        (ChanFxKind::Top, ChanFxKind::Bottom) => {
+            let Some(end_high) = neighborhood_calc_high(end, merged_bars) else {
+                return true;
+            };
+            let Some(start_low) = neighborhood_calc_low(start, merged_bars) else {
+                return true;
+            };
+            start.price > end_high && end.price < start_low
+        }
+        (ChanFxKind::Bottom, ChanFxKind::Top) => {
+            let Some(end_low) = neighborhood_calc_low(end, merged_bars) else {
+                return true;
+            };
+            let Some(start_high) = neighborhood_calc_high(start, merged_bars) else {
+                return true;
+            };
+            start.price < end_low && end.price > start_high
+        }
+        _ => false,
+    }
+}
+
+fn neighborhood_calc_high(fx: &ChanFx, merged_bars: &[ChanMergedBar]) -> Option<f64> {
+    let left = merged_bars.get(fx.left_merged_index)?.calc_high;
+    let center = merged_bars.get(fx.center_merged_index)?.calc_high;
+    let right = merged_bars.get(fx.right_merged_index)?.calc_high;
+    Some(left.max(center).max(right))
+}
+
+fn neighborhood_calc_low(fx: &ChanFx, merged_bars: &[ChanMergedBar]) -> Option<f64> {
+    let left = merged_bars.get(fx.left_merged_index)?.calc_low;
+    let center = merged_bars.get(fx.center_merged_index)?.calc_low;
+    let right = merged_bars.get(fx.right_merged_index)?.calc_low;
+    Some(left.min(center).min(right))
+}
+
 fn push_bi(bis: &mut Vec<ChanBi>, start: &ChanFx, end: &ChanFx) {
     bis.push(ChanBi::new(
         bis.len(),
@@ -72,9 +132,9 @@ fn push_bi(bis: &mut Vec<ChanBi>, start: &ChanFx, end: &ChanFx) {
 
 /// Legacy helper for unit-level same-kind strength checks.
 ///
-/// Full BI construction should use `build_bis_with_min_span`, because chan.py's
-/// first-BI free candidate flow is not equivalent to blindly normalizing all FX
-/// before BI creation.
+/// Full BI construction should use `build_bis_with_merged_bars` when merged bar
+/// context is available, because chan.py's first-BI free candidate and
+/// check_fx_valid flow is not equivalent to blindly normalizing all FX before BI.
 pub fn normalize_fxs_for_bi(fxs: &[ChanFx], min_merged_span: usize) -> Vec<&ChanFx> {
     let mut normalized: Vec<&ChanFx> = Vec::new();
 
