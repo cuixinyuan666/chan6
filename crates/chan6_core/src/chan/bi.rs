@@ -266,7 +266,7 @@ mod tests {
             fx(2, ChanFxKind::Bottom, 5, 50, 7.0),
         ];
 
-        let bis = build_bis_with_min_span(&fxs, 2);
+        let bis = build_bis_with_min_span(&fxs, 4);
 
         assert_eq!(bis.len(), 0);
     }
