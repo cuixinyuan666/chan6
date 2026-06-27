@@ -1,26 +1,24 @@
-use chan6_core::chan::bi::build_bis_with_merged_bars;
-use chan6_core::chan::fx::detect_fxs;
-use chan6_core::chan::include::merge_included_bars;
-use chan6_core::chan::model::{ChanBar, ChanFxKind};
+use chan6_core::chan::analyze_chan_basic;
+use chan6_core::chan::model::ChanFxKind;
 use chan6_core::model::KLine1m;
 use serde::Deserialize;
 
 #[test]
-fn chanpy_stage1_check_fx_valid_gold_matches_rust_bi_gate() {
+fn chanpy_stage1_check_fx_valid_gold_matches_main_pipeline() {
     let csv = include_str!("../../../fixtures/chanpy_stage1/input/stage1_bi_check_fx_valid_candidate.csv");
     let gold_text = include_str!("../../../fixtures/chanpy_stage1/gold/stage1_bi_check_fx_valid_candidate_chanpy_gold.json");
     let gold: Stage1Gold = serde_json::from_str(gold_text).unwrap();
     let klines = parse_stage1_csv(csv);
-    let bars: Vec<ChanBar> = klines.iter().map(ChanBar::from).collect();
-    let merged = merge_included_bars(&bars);
-    let fx = detect_fxs(&merged);
-    let bi = build_bis_with_merged_bars(&fx, &merged);
+    let snapshot = analyze_chan_basic(&klines);
 
-    assert_eq!(merged.len(), gold.meta.merged_bars_count);
-    assert_eq!(fx.len(), gold.meta.fx_count);
-    assert_eq!(bi.len(), gold.meta.bi_count);
+    assert_eq!(snapshot.merged_bars.len(), gold.meta.merged_bars_count);
+    assert_eq!(snapshot.fx.len(), gold.meta.fx_count);
+    assert_eq!(snapshot.bi.len(), gold.meta.bi_count);
+    assert_eq!(snapshot.meta.merged_count, gold.meta.merged_bars_count);
+    assert_eq!(snapshot.meta.fx_count, gold.meta.fx_count);
+    assert_eq!(snapshot.meta.bi_count, gold.meta.bi_count);
 
-    for (actual, expected) in fx.iter().zip(&gold.fx) {
+    for (actual, expected) in snapshot.fx.iter().zip(&gold.fx) {
         assert_eq!(actual.merged_index, expected.index);
         assert_eq!(actual.bar_id, expected.raw_index);
         assert_close(actual.price, expected.price);
