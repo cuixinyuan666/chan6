@@ -8,7 +8,9 @@ import 'core/layer_manager.dart';
 import 'layers/chip_layer.dart';
 import 'layers/crosshair_layer.dart';
 import 'layers/drawing_layer.dart';
+import 'layers/fx_layer.dart';
 import 'layers/kline_layer.dart';
+import 'layers/merged_box_layer.dart';
 
 class ChartShell extends StatefulWidget {
   const ChartShell({
@@ -39,6 +41,8 @@ class _ChartShellState extends State<ChartShell> {
   final LayerManager _layerManager = LayerManager(
     <ChartLayer>[
       KLineLayer(),
+      MergedBoxLayer(),
+      FxLayer(),
       DrawingLayer(),
       ChipLayer(),
       CrosshairLayer(),
@@ -327,7 +331,7 @@ class _ChartPainter extends CustomPainter {
     final titlePainter = TextPainter(
       text: TextSpan(
         text:
-            'Chan6 ${state.symbol} | ${state.meta.query} | chip=${state.meta.chipScope} | chip_bar=${state.meta.chipBarId ?? '-'}',
+            'Chan6 ${state.symbol} | ${state.meta.query} | merged=${state.meta.mergedCount ?? state.mergedBoxes.length} | fx=${state.meta.fxCount ?? state.fxLines.length} | bi=${state.meta.biCount ?? state.biLines.length}',
         style: const TextStyle(
           color: Color(0xffcfd8dc),
           fontSize: 13,
