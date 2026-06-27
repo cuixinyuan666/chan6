@@ -26,7 +26,19 @@ class ChartQueryParser {
         .map((item) => _parseChipLevel(_asStringMap(item)))
         .toList(growable: false);
 
-    final viewport = _buildInitialViewport(kline);
+    final mergedBoxes = _asList(data['merged_boxes'])
+        .map((item) => _parseMergedBox(_asStringMap(item)))
+        .toList(growable: false);
+
+    final fxLines = _asList(data['fx_lines'])
+        .map((item) => _parseFxLinePoint(_asStringMap(item)))
+        .toList(growable: false);
+
+    final biLines = _asList(data['bi_lines'])
+        .map((item) => _parseBiLinePoint(_asStringMap(item)))
+        .toList(growable: false);
+
+    final viewport = _buildInitialViewport(kline, mergedBoxes);
 
     final meta = ChartMeta(
       schemaVersion: _asInt(metaMap['schema_version'], 1),
@@ -40,6 +52,9 @@ class ChartQueryParser {
       targetBarId: _asNullableInt(metaMap['target_bar_id'] ?? data['target_bar_id']),
       targetIndex: _asNullableInt(metaMap['target_index'] ?? data['target_index']),
       klineCount: _asInt(metaMap['kline_count'] ?? data['kline_count'], kline.length),
+      mergedCount: _asInt(metaMap['merged_count'], mergedBoxes.length),
+      fxCount: _asInt(metaMap['fx_count'], fxLines.length),
+      biCount: _asInt(metaMap['bi_count'], biLines.length),
       offset: _asNullableInt(metaMap['offset'] ?? data['offset']),
       limit: _asNullableInt(metaMap['limit'] ?? data['limit']),
       day: _asNullableInt(metaMap['day'] ?? data['day']),
@@ -54,6 +69,9 @@ class ChartQueryParser {
       symbol: symbol,
       kline: kline,
       chip: chip,
+      mergedBoxes: mergedBoxes,
+      fxLines: fxLines,
+      biLines: biLines,
       meta: meta,
       viewport: viewport,
       crosshair: CrosshairState.hidden,
@@ -89,7 +107,50 @@ class ChartQueryParser {
     );
   }
 
-  static ChartViewport _buildInitialViewport(List<KLinePoint> kline) {
+  static MergedBox _parseMergedBox(Map<String, dynamic> item) {
+    return MergedBox(
+      index: _asInt(item['index'], 0),
+      startBarId: _asInt(item['start_bar_id'], 0),
+      endBarId: _asInt(item['end_bar_id'], 0),
+      high: _asDouble(item['high'], 0),
+      low: _asDouble(item['low'], 0),
+      isMerged: _asBool(item['is_merged'], false),
+      highBarId: _asInt(item['high_bar_id'], 0),
+      lowBarId: _asInt(item['low_bar_id'], 0),
+      calcHigh: _asDouble(item['calc_high'], 0),
+      calcLow: _asDouble(item['calc_low'], 0),
+      calcHighBarId: _asInt(item['calc_high_bar_id'], 0),
+      calcLowBarId: _asInt(item['calc_low_bar_id'], 0),
+    );
+  }
+
+  static FxLinePoint _parseFxLinePoint(Map<String, dynamic> item) {
+    return FxLinePoint(
+      index: _asInt(item['index'], 0),
+      kind: _asString(item['kind'], 'unknown'),
+      mergedIndex: _asInt(item['merged_index'], 0),
+      barId: _asInt(item['bar_id'], 0),
+      price: _asDouble(item['price'], 0),
+      confirmed: _asBool(item['confirmed'], true),
+    );
+  }
+
+  static BiLinePoint _parseBiLinePoint(Map<String, dynamic> item) {
+    return BiLinePoint(
+      index: _asInt(item['index'], 0),
+      direction: _asString(item['direction'], 'unknown'),
+      startBarId: _asInt(item['start_bar_id'], 0),
+      startPrice: _asDouble(item['start_price'], 0),
+      endBarId: _asInt(item['end_bar_id'], 0),
+      endPrice: _asDouble(item['end_price'], 0),
+      confirmed: _asBool(item['confirmed'], true),
+    );
+  }
+
+  static ChartViewport _buildInitialViewport(
+    List<KLinePoint> kline,
+    List<MergedBox> mergedBoxes,
+  ) {
     if (kline.isEmpty) {
       return const ChartViewport(
         startIndex: 0,
@@ -105,6 +166,11 @@ class ChartQueryParser {
     for (final bar in kline) {
       minPrice = math.min(minPrice, bar.low);
       maxPrice = math.max(maxPrice, bar.high);
+    }
+
+    for (final box in mergedBoxes) {
+      minPrice = math.min(minPrice, box.low);
+      maxPrice = math.max(maxPrice, box.high);
     }
 
     final range = math.max(0.000001, maxPrice - minPrice);
