@@ -3,12 +3,14 @@ use super::model::{ChanBi, ChanFx, ChanFxKind};
 /// Minimum distance between two FX merged indexes for first-stage BI construction.
 ///
 /// This is intentionally aligned to chan.py strict BI behavior for the stage-1
-/// fixture: adjacent top/bottom FX are not enough to form a BI.
+/// fixtures: adjacent top/bottom FX are not enough to form a BI.
 ///
-/// First-stage rule is conservative and testable:
-/// - BI is built from already detected FX, not raw bars;
-/// - same-kind consecutive FX are normalized by keeping the stronger one;
-/// - opposite-kind FX form a BI only when their merged indexes are far enough;
+/// Stage-1 BI construction follows the observed hichan first-BI flow:
+/// - before the first BI exists, FX are kept in a free candidate list;
+/// - when a new FX arrives, the first opposite free FX that can make a BI wins;
+/// - this means a later stronger same-kind FX must not blindly replace an earlier
+///   free FX before can_make_bi has been tested;
+/// - after the first BI, later BI candidates are built from the previous BI end;
 /// - output anchors always use `bar_id + price`.
 pub const DEFAULT_MIN_BI_MERGED_SPAN: usize = 4;
 
@@ -17,34 +19,62 @@ pub fn build_bis(fxs: &[ChanFx]) -> Vec<ChanBi> {
 }
 
 pub fn build_bis_with_min_span(fxs: &[ChanFx], min_merged_span: usize) -> Vec<ChanBi> {
-    let normalized = normalize_fxs_for_bi(fxs, min_merged_span);
     let mut bis = Vec::new();
+    let mut free_fxs: Vec<&ChanFx> = Vec::new();
+    let mut last_bi_end: Option<&ChanFx> = None;
 
-    for pair in normalized.windows(2) {
-        let start = pair[0];
-        let end = pair[1];
-        if start.kind == end.kind {
+    for fx in fxs {
+        if let Some(last_end) = last_bi_end {
+            if fx.kind == last_end.kind {
+                continue;
+            }
+            if fx_span_is_enough(last_end, fx, min_merged_span) {
+                push_bi(&mut bis, last_end, fx);
+                last_bi_end = Some(fx);
+            }
             continue;
         }
-        if !fx_span_is_enough(start, end, min_merged_span) {
-            continue;
+
+        let mut first_valid_start = None;
+        for existing in &free_fxs {
+            if existing.kind == fx.kind {
+                continue;
+            }
+            if fx_span_is_enough(existing, fx, min_merged_span) {
+                first_valid_start = Some(*existing);
+                break;
+            }
         }
 
-        bis.push(ChanBi::new(
-            bis.len(),
-            start.index,
-            end.index,
-            start.bar_id,
-            start.price,
-            end.bar_id,
-            end.price,
-        ));
+        if let Some(start) = first_valid_start {
+            push_bi(&mut bis, start, fx);
+            last_bi_end = Some(fx);
+        } else {
+            free_fxs.push(fx);
+        }
     }
 
     link_bis(&mut bis);
     bis
 }
 
+fn push_bi(bis: &mut Vec<ChanBi>, start: &ChanFx, end: &ChanFx) {
+    bis.push(ChanBi::new(
+        bis.len(),
+        start.index,
+        end.index,
+        start.bar_id,
+        start.price,
+        end.bar_id,
+        end.price,
+    ));
+}
+
+/// Legacy helper for unit-level same-kind strength checks.
+///
+/// Full BI construction should use `build_bis_with_min_span`, because chan.py's
+/// first-BI free candidate flow is not equivalent to blindly normalizing all FX
+/// before BI creation.
 pub fn normalize_fxs_for_bi(fxs: &[ChanFx], min_merged_span: usize) -> Vec<&ChanFx> {
     let mut normalized: Vec<&ChanFx> = Vec::new();
 
@@ -150,7 +180,27 @@ mod tests {
     }
 
     #[test]
-    fn same_kind_top_keeps_higher_price() {
+    fn first_bi_uses_first_valid_free_opposite_fx() {
+        let fxs = vec![
+            fx(0, ChanFxKind::Top, 1, 10, 12.0),
+            fx(1, ChanFxKind::Bottom, 2, 20, 8.5),
+            fx(2, ChanFxKind::Top, 3, 30, 13.0),
+            fx(3, ChanFxKind::Bottom, 6, 60, 6.5),
+        ];
+
+        let bis = build_bis(&fxs);
+
+        assert_eq!(bis.len(), 1);
+        assert_eq!(bis[0].start_fx_index, 0);
+        assert_eq!(bis[0].start_bar_id, 10);
+        assert_eq!(bis[0].start_price, 12.0);
+        assert_eq!(bis[0].end_fx_index, 3);
+        assert_eq!(bis[0].end_bar_id, 60);
+        assert_eq!(bis[0].end_price, 6.5);
+    }
+
+    #[test]
+    fn same_kind_normalizer_keeps_higher_top_but_bi_flow_keeps_free_candidates() {
         let fxs = vec![
             fx(0, ChanFxKind::Top, 1, 10, 10.0),
             fx(1, ChanFxKind::Top, 2, 20, 12.0),
@@ -163,12 +213,12 @@ mod tests {
         assert_eq!(normalized.len(), 2);
         assert_eq!(normalized[0].index, 1);
         assert_eq!(bis.len(), 1);
-        assert_eq!(bis[0].start_fx_index, 1);
-        assert_eq!(bis[0].start_price, 12.0);
+        assert_eq!(bis[0].start_fx_index, 0);
+        assert_eq!(bis[0].start_price, 10.0);
     }
 
     #[test]
-    fn same_kind_bottom_keeps_lower_price() {
+    fn same_kind_normalizer_keeps_lower_bottom_but_bi_flow_keeps_free_candidates() {
         let fxs = vec![
             fx(0, ChanFxKind::Bottom, 1, 10, 8.0),
             fx(1, ChanFxKind::Bottom, 2, 20, 7.0),
@@ -181,8 +231,8 @@ mod tests {
         assert_eq!(normalized.len(), 2);
         assert_eq!(normalized[0].index, 1);
         assert_eq!(bis.len(), 1);
-        assert_eq!(bis[0].start_fx_index, 1);
-        assert_eq!(bis[0].start_price, 7.0);
+        assert_eq!(bis[0].start_fx_index, 0);
+        assert_eq!(bis[0].start_price, 8.0);
     }
 
     #[test]
