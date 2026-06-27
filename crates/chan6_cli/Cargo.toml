@@ -8,6 +8,10 @@ license.workspace = true
 name = "chan6"
 path = "src/main.rs"
 
+[[bin]]
+name = "query_chan_basic"
+path = "src/bin/query_chan_basic.rs"
+
 [dependencies]
 anyhow.workspace = true
 chan6_core = { path = "../chan6_core" }
