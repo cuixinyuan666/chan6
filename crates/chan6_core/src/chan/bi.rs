@@ -30,6 +30,10 @@ fn build_bis_internal(
     for fx in fxs {
         if let Some(last_end) = last_bi_end {
             if fx.kind == last_end.kind {
+                if is_stronger_same_kind_fx(fx, last_end) {
+                    update_last_bi_end(&mut bis, fx);
+                    last_bi_end = Some(fx);
+                }
                 continue;
             }
             if can_make_bi(last_end, fx, min_merged_span, merged_bars) {
@@ -116,6 +120,18 @@ fn neighborhood_calc_low(fx: &ChanFx, merged_bars: &[ChanMergedBar]) -> Option<f
     let center = merged_bars.get(fx.center_merged_index)?.calc_low;
     let right = merged_bars.get(fx.right_merged_index)?.calc_low;
     Some(left.min(center).min(right))
+}
+
+
+fn update_last_bi_end(bis: &mut [ChanBi], end: &ChanFx) {
+    let Some(last_bi) = bis.last_mut() else {
+        return;
+    };
+
+    last_bi.end_fx_index = end.index;
+    last_bi.end_bar_id = end.bar_id;
+    last_bi.end_price = end.price;
+    last_bi.confirmed = end.confirmed;
 }
 
 fn push_bi(bis: &mut Vec<ChanBi>, start: &ChanFx, end: &ChanFx) {
