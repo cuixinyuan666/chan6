@@ -27,15 +27,11 @@ class CliChartQueryRepository implements ChartQueryRepository {
       }
 
       final parent = dir.parent.absolute;
-      if (parent.path == dir.path) {
-        break;
-      }
+      if (parent.path == dir.path) break;
       dir = parent;
     }
 
-    throw StateError(
-      'Cannot find chan6 repo root from ${Directory.current.path}',
-    );
+    throw StateError('Cannot find chan6 repo root from ${Directory.current.path}');
   }
 
   @override
@@ -51,8 +47,9 @@ class CliChartQueryRepository implements ChartQueryRepository {
       'run',
       '-p',
       'chan6_cli',
+      '--bin',
+      'query_chan_basic',
       '--',
-      'query-chart',
       '--db',
       dbPath,
       '--symbol',
@@ -61,13 +58,9 @@ class CliChartQueryRepository implements ChartQueryRepository {
       offset.toString(),
       '--limit',
       limit.toString(),
-      '--top',
-      top.toString(),
+      '--level',
+      '1m',
     ];
-
-    if (chipBarId != null) {
-      args.addAll(['--chip-bar-id', chipBarId.toString()]);
-    }
 
     final raw = await _runCli(args);
     return ChartQueryParser.parseJsonString(raw);
@@ -107,10 +100,7 @@ class CliChartQueryRepository implements ChartQueryRepository {
       ],
     );
 
-    if (raw.trim() == 'null') {
-      return null;
-    }
-
+    if (raw.trim() == 'null') return null;
     return ChartQueryParser.parseJsonString(raw);
   }
 
@@ -119,25 +109,14 @@ class CliChartQueryRepository implements ChartQueryRepository {
       cargoExecutable,
       args,
       workingDirectory: repoRoot.path,
-      runInShell: true,
     );
 
     if (result.exitCode != 0) {
-      throw ProcessException(
-        cargoExecutable,
-        args,
-        'chan6_cli failed with exitCode=${result.exitCode}\n'
-        'stdout:\n${result.stdout}\n'
-        'stderr:\n${result.stderr}',
-        result.exitCode,
-      );
+      throw StateError('chan6_cli failed: ${result.stderr}');
     }
 
     final stdoutText = result.stdout.toString().trim();
-    if (stdoutText.isEmpty) {
-      throw StateError('chan6_cli returned empty stdout');
-    }
-
+    if (stdoutText.isEmpty) throw StateError('chan6_cli returned empty stdout');
     return stdoutText;
   }
 }
