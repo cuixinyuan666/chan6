@@ -31,7 +31,7 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
             ));
             start_index = end_index + 1;
         } else {
-            if segments.len() == 1 {
+            if should_emit_chanpy_single_bi_tail(&segments) {
                 let tail = &bis[start_index];
                 segments.push(make_segment(
                     segments.len(),
@@ -46,6 +46,10 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
 
     apply_chanpy_observed_confirmations(&mut segments, bis);
     segments
+}
+
+fn should_emit_chanpy_single_bi_tail(segments: &[ChanSegment]) -> bool {
+    !segments.is_empty() && segments.len() % 2 == 1
 }
 
 fn latest_segment_end_index_from(bis: &[ChanBi], start_index: usize) -> usize {
@@ -97,15 +101,7 @@ fn apply_chanpy_observed_confirmations(segments: &mut [ChanSegment], bis: &[Chan
             let segment = &segments[index];
             let next = &segments[index + 1];
 
-            let Some(start_parent_index) = segment.start_parent_index else {
-                continue;
-            };
-            let Some(end_parent_index) = segment.end_parent_index else {
-                continue;
-            };
-
-            let is_three_bi_segment = end_parent_index.saturating_sub(start_parent_index) == 2;
-            if !is_three_bi_segment {
+            if segment.start_parent_index.is_none() || segment.end_parent_index.is_none() {
                 continue;
             }
 
