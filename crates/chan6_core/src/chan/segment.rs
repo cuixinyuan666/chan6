@@ -44,7 +44,7 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
         }
     }
 
-    apply_chanpy_observed_confirmations(&mut segments);
+    apply_chanpy_observed_confirmations(&mut segments, bis);
     segments
 }
 
@@ -83,7 +83,7 @@ fn extends_segment(
     }
 }
 
-fn apply_chanpy_observed_confirmations(segments: &mut [ChanSegment]) {
+fn apply_chanpy_observed_confirmations(segments: &mut [ChanSegment], bis: &[ChanBi]) {
     if segments.len() < 2 {
         return;
     }
@@ -106,6 +106,16 @@ fn apply_chanpy_observed_confirmations(segments: &mut [ChanSegment]) {
 
             let is_three_bi_segment = end_parent_index.saturating_sub(start_parent_index) == 2;
             if !is_three_bi_segment {
+                continue;
+            }
+
+            let Some(next_end_parent_index) = next.end_parent_index else {
+                continue;
+            };
+            let Some(next_end_bi) = bis.get(next_end_parent_index) else {
+                continue;
+            };
+            if !next_end_bi.confirmed {
                 continue;
             }
 

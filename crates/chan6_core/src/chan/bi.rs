@@ -1,4 +1,4 @@
-use super::model::{ChanBi, ChanFx, ChanFxKind, ChanMergedBar};
+use super::model::{ChanBi, ChanDirection, ChanFx, ChanFxKind, ChanMergedBar};
 
 /// Minimum distance between two FX merged indexes for first-stage BI construction.
 ///
@@ -62,6 +62,10 @@ fn build_bis_internal(
         }
     }
 
+    if let Some(merged_bars) = merged_bars {
+        append_active_tail_bi(&mut bis, fxs, merged_bars, min_merged_span);
+    }
+
     link_bis(&mut bis);
     bis
 }
@@ -72,15 +76,10 @@ fn can_make_bi(
     min_merged_span: usize,
     merged_bars: Option<&[ChanMergedBar]>,
 ) -> bool {
-    fx_span_is_enough(start, end, min_merged_span)
-        && check_fx_valid(start, end, merged_bars)
+    fx_span_is_enough(start, end, min_merged_span) && check_fx_valid(start, end, merged_bars)
 }
 
-fn check_fx_valid(
-    start: &ChanFx,
-    end: &ChanFx,
-    merged_bars: Option<&[ChanMergedBar]>,
-) -> bool {
+fn check_fx_valid(start: &ChanFx, end: &ChanFx, merged_bars: Option<&[ChanMergedBar]>) -> bool {
     let Some(merged_bars) = merged_bars else {
         return true;
     };
@@ -122,6 +121,92 @@ fn neighborhood_calc_low(fx: &ChanFx, merged_bars: &[ChanMergedBar]) -> Option<f
     Some(left.min(center).min(right))
 }
 
+fn append_active_tail_bi(
+    bis: &mut Vec<ChanBi>,
+    fxs: &[ChanFx],
+    merged_bars: &[ChanMergedBar],
+    min_merged_span: usize,
+) {
+    let Some(last_bi) = bis.last() else {
+        return;
+    };
+    let Some(start_fx) = fxs.get(last_bi.end_fx_index) else {
+        return;
+    };
+
+    let Some((end_merged_index, end_bar_id, end_price, direction)) =
+        active_tail_endpoint(start_fx, merged_bars)
+    else {
+        return;
+    };
+
+    if end_merged_index.saturating_sub(start_fx.merged_index) < min_merged_span {
+        return;
+    }
+    if end_bar_id == last_bi.end_bar_id {
+        return;
+    }
+
+    bis.push(ChanBi {
+        index: bis.len(),
+        direction,
+        start_fx_index: start_fx.index,
+        end_fx_index: fxs.len(),
+        start_bar_id: start_fx.bar_id,
+        start_price: start_fx.price,
+        end_bar_id,
+        end_price,
+        confirmed: false,
+        prev_index: None,
+        next_index: None,
+        parent_segment_index: None,
+    });
+}
+
+fn active_tail_endpoint(
+    start_fx: &ChanFx,
+    merged_bars: &[ChanMergedBar],
+) -> Option<(usize, i64, f64, ChanDirection)> {
+    let start = start_fx.merged_index.saturating_add(1);
+    if start >= merged_bars.len() {
+        return None;
+    }
+
+    match start_fx.kind {
+        ChanFxKind::Top => merged_bars[start..]
+            .iter()
+            .enumerate()
+            .min_by(|(_, left), (_, right)| left.calc_low.total_cmp(&right.calc_low))
+            .and_then(|(offset, merged)| {
+                if merged.calc_low < start_fx.price {
+                    Some((
+                        start + offset,
+                        merged.calc_low_bar_id,
+                        merged.calc_low,
+                        ChanDirection::Down,
+                    ))
+                } else {
+                    None
+                }
+            }),
+        ChanFxKind::Bottom => merged_bars[start..]
+            .iter()
+            .enumerate()
+            .max_by(|(_, left), (_, right)| left.calc_high.total_cmp(&right.calc_high))
+            .and_then(|(offset, merged)| {
+                if merged.calc_high > start_fx.price {
+                    Some((
+                        start + offset,
+                        merged.calc_high_bar_id,
+                        merged.calc_high,
+                        ChanDirection::Up,
+                    ))
+                } else {
+                    None
+                }
+            }),
+    }
+}
 
 fn update_last_bi_end(bis: &mut [ChanBi], end: &ChanFx) {
     let Some(last_bi) = bis.last_mut() else {
@@ -192,7 +277,11 @@ fn link_bis(bis: &mut [ChanBi]) {
     let len = bis.len();
     for (index, bi) in bis.iter_mut().enumerate() {
         bi.prev_index = index.checked_sub(1);
-        bi.next_index = if index + 1 < len { Some(index + 1) } else { None };
+        bi.next_index = if index + 1 < len {
+            Some(index + 1)
+        } else {
+            None
+        };
     }
 }
 
