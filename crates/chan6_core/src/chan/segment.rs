@@ -11,35 +11,37 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
         return Vec::new();
     }
 
-    let first_end_index = latest_segment_end_index_from(bis, 0);
-    let mut segments = vec![make_segment(
-        0,
-        &bis[0],
-        &bis[first_end_index],
-        "chanpy_min_three_bi_link",
-    )];
+    let mut segments = Vec::new();
+    let mut start_index = 0;
 
-    let next_start_index = first_end_index + 1;
-    if next_start_index >= bis.len() {
-        return segments;
-    }
+    while start_index < bis.len() {
+        if start_index + 2 < bis.len() {
+            let end_index = latest_segment_end_index_from(bis, start_index);
+            let reason = if segments.is_empty() {
+                "chanpy_min_three_bi_link"
+            } else {
+                "chanpy_reversal_three_bi_segment"
+            };
 
-    if next_start_index + 2 < bis.len() {
-        let second_end_index = latest_segment_end_index_from(bis, next_start_index);
-        segments.push(make_segment(
-            1,
-            &bis[next_start_index],
-            &bis[second_end_index],
-            "chanpy_reversal_three_bi_segment",
-        ));
-    } else {
-        let tail = &bis[next_start_index];
-        segments.push(make_segment(
-            1,
-            tail,
-            tail,
-            "chanpy_even_trailing_bi_segment",
-        ));
+            segments.push(make_segment(
+                segments.len(),
+                &bis[start_index],
+                &bis[end_index],
+                reason,
+            ));
+            start_index = end_index + 1;
+        } else {
+            if segments.len() == 1 {
+                let tail = &bis[start_index];
+                segments.push(make_segment(
+                    segments.len(),
+                    tail,
+                    tail,
+                    "chanpy_even_trailing_bi_segment",
+                ));
+            }
+            break;
+        }
     }
 
     segments
@@ -247,6 +249,56 @@ mod tests {
         assert_eq!(segments[1].start_price, 15.0);
         assert_eq!(segments[1].end_price, 4.0);
         assert!(!segments[1].confirmed);
+    }
+
+    #[test]
+    fn failed_extension_can_form_third_reversal_segment() {
+        let bis = vec![
+            bi(0, 1, 5, 8.0, 14.0),
+            bi(1, 5, 9, 14.0, 6.5),
+            bi(2, 9, 13, 6.5, 15.0),
+            bi(3, 13, 17, 15.0, 5.8),
+            bi(4, 17, 21, 5.8, 14.2),
+            bi(5, 21, 25, 14.2, 4.0),
+            bi(6, 25, 29, 4.0, 13.5),
+            bi(7, 29, 33, 13.5, 3.0),
+            bi(8, 33, 37, 3.0, 12.5),
+            bi(9, 37, 41, 12.5, 2.5),
+            bi(10, 41, 45, 2.5, 13.2),
+            bi(11, 45, 49, 13.2, 4.2),
+            bi(12, 49, 53, 4.2, 16.5),
+        ];
+
+        let segments = build_segments(&bis);
+
+        assert_eq!(segments.len(), 3);
+
+        assert_eq!(segments[0].index, 0);
+        assert_eq!(segments[0].direction, ChanDirection::Up);
+        assert_eq!(segments[0].start_parent_index, Some(0));
+        assert_eq!(segments[0].end_parent_index, Some(2));
+        assert_eq!(segments[0].start_bar_id, 1);
+        assert_eq!(segments[0].end_bar_id, 13);
+        assert_eq!(segments[0].end_price, 15.0);
+
+        assert_eq!(segments[1].index, 1);
+        assert_eq!(segments[1].direction, ChanDirection::Down);
+        assert_eq!(segments[1].start_parent_index, Some(3));
+        assert_eq!(segments[1].end_parent_index, Some(9));
+        assert_eq!(segments[1].start_bar_id, 13);
+        assert_eq!(segments[1].end_bar_id, 41);
+        assert_eq!(segments[1].start_price, 15.0);
+        assert_eq!(segments[1].end_price, 2.5);
+
+        assert_eq!(segments[2].index, 2);
+        assert_eq!(segments[2].direction, ChanDirection::Up);
+        assert_eq!(segments[2].start_parent_index, Some(10));
+        assert_eq!(segments[2].end_parent_index, Some(12));
+        assert_eq!(segments[2].start_bar_id, 41);
+        assert_eq!(segments[2].end_bar_id, 53);
+        assert_eq!(segments[2].start_price, 2.5);
+        assert_eq!(segments[2].end_price, 16.5);
+        assert!(!segments[2].confirmed);
     }
 
     fn bi(
