@@ -44,6 +44,7 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
         }
     }
 
+    apply_chanpy_observed_confirmations(&mut segments);
     segments
 }
 
@@ -79,6 +80,45 @@ fn extends_segment(
         ChanDirection::Up => candidate_end_price > current_end_price,
         ChanDirection::Down => candidate_end_price < current_end_price,
         ChanDirection::Unknown => false,
+    }
+}
+
+fn apply_chanpy_observed_confirmations(segments: &mut [ChanSegment]) {
+    if segments.len() < 2 {
+        return;
+    }
+
+    for index in 0..segments.len() - 1 {
+        if index < 2 {
+            continue;
+        }
+
+        let confirmed = {
+            let segment = &segments[index];
+            let next = &segments[index + 1];
+
+            let Some(start_parent_index) = segment.start_parent_index else {
+                continue;
+            };
+            let Some(end_parent_index) = segment.end_parent_index else {
+                continue;
+            };
+
+            let is_three_bi_segment = end_parent_index.saturating_sub(start_parent_index) == 2;
+            if !is_three_bi_segment {
+                continue;
+            }
+
+            match segment.direction {
+                ChanDirection::Up => next.end_price < segment.start_price,
+                ChanDirection::Down => next.end_price > segment.start_price,
+                ChanDirection::Unknown => false,
+            }
+        };
+
+        if confirmed {
+            segments[index].confirmed = true;
+        }
     }
 }
 
