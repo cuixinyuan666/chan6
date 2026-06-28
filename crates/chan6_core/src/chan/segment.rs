@@ -12,7 +12,8 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
     }
 
     let start = &bis[0];
-    let end = &bis[min_bi_count - 1];
+    let end_index = latest_odd_bi_end_index(bis.len());
+    let end = &bis[end_index];
 
     vec![ChanSegment {
         n: CHAN_SEGMENT_N_LINE,
@@ -28,6 +29,15 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
         confirmed: false,
         reason: "chanpy_min_three_bi_link".to_string(),
     }]
+}
+
+fn latest_odd_bi_end_index(bi_count: usize) -> usize {
+    debug_assert!(bi_count >= DEFAULT_MIN_BI_COUNT_FOR_SEGMENT);
+    if bi_count % 2 == 1 {
+        bi_count - 1
+    } else {
+        bi_count - 2
+    }
 }
 
 #[cfg(test)]
@@ -64,6 +74,31 @@ mod tests {
         assert_eq!(segments[0].end_price, 15.0);
         assert!(!segments[0].confirmed);
         assert_eq!(segments[0].reason, "chanpy_min_three_bi_link");
+    }
+
+    #[test]
+    fn five_bis_extend_the_unconfirmed_line_segment_to_latest_same_direction_endpoint() {
+        let bis = vec![
+            bi(0, 1, 5, 8.0, 14.0),
+            bi(1, 5, 9, 14.0, 6.5),
+            bi(2, 9, 13, 6.5, 15.0),
+            bi(3, 13, 17, 15.0, 5.8),
+            bi(4, 17, 21, 5.8, 16.0),
+        ];
+
+        let segments = build_segments(&bis);
+
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].n, CHAN_SEGMENT_N_LINE);
+        assert_eq!(segments[0].index, 0);
+        assert_eq!(segments[0].direction, ChanDirection::Up);
+        assert_eq!(segments[0].start_parent_index, Some(0));
+        assert_eq!(segments[0].end_parent_index, Some(4));
+        assert_eq!(segments[0].start_bar_id, 1);
+        assert_eq!(segments[0].start_price, 8.0);
+        assert_eq!(segments[0].end_bar_id, 21);
+        assert_eq!(segments[0].end_price, 16.0);
+        assert!(!segments[0].confirmed);
     }
 
     fn bi(
