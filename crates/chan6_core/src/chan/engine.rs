@@ -6,7 +6,8 @@ use super::bi::build_bis_with_merged_bars;
 use super::config::ChanConfig;
 use super::fx::detect_fxs;
 use super::include::merge_included_bars;
-use super::model::{ChanBar, ChanBi, ChanFx, ChanMergedBar};
+use super::model::{ChanBar, ChanBi, ChanFx, ChanMergedBar, ChanSegment};
+use super::segment::build_segments;
 
 pub const CHAN_BASIC_SCHEMA_VERSION: u32 = 1;
 
@@ -20,6 +21,7 @@ pub struct ChanBasicMeta {
     pub merged_count: usize,
     pub fx_count: usize,
     pub bi_count: usize,
+    pub segment_count: usize,
     pub include_mode: String,
     pub fx_mode: String,
     pub bi_mode: String,
@@ -32,6 +34,7 @@ pub struct ChanBasicSnapshot {
     pub merged_bars: Vec<ChanMergedBar>,
     pub fx: Vec<ChanFx>,
     pub bi: Vec<ChanBi>,
+    pub segments: Vec<ChanSegment>,
 }
 
 pub fn analyze_chan_basic(klines: &[KLine1m]) -> ChanBasicSnapshot {
@@ -47,6 +50,7 @@ pub fn analyze_chan_basic_with_config(
     let merged_bars = merge_included_bars(&bars);
     let fx = detect_fxs(&merged_bars);
     let bi = build_bis_with_merged_bars(&fx, &merged_bars);
+    let segments = build_segments(&bi);
 
     let symbol = bars
         .first()
@@ -63,6 +67,7 @@ pub fn analyze_chan_basic_with_config(
         merged_count: merged_bars.len(),
         fx_count: fx.len(),
         bi_count: bi.len(),
+        segment_count: segments.len(),
         include_mode: format!("{:?}", config.include_mode).to_lowercase(),
         fx_mode: format!("{:?}", config.fx_mode).to_lowercase(),
         bi_mode: format!("{:?}", config.bi_mode).to_lowercase(),
@@ -74,6 +79,7 @@ pub fn analyze_chan_basic_with_config(
         merged_bars,
         fx,
         bi,
+        segments,
     }
 }
 
@@ -162,9 +168,7 @@ mod tests {
     fn chanpy_stage1_small_gold_matches_rust_pipeline() {
         assert_chanpy_gold_matches_rust_pipeline(
             include_str!("../../../../fixtures/chanpy_stage1/input/stage1_small.csv"),
-            include_str!(
-                "../../../../fixtures/chanpy_stage1/gold/stage1_small_chanpy_gold.json"
-            ),
+            include_str!("../../../../fixtures/chanpy_stage1/gold/stage1_small_chanpy_gold.json"),
         );
     }
 

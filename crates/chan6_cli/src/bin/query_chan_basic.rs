@@ -53,9 +53,12 @@ fn main() -> Result<()> {
                 "merged_count": chan_basic.merged_bars.len(),
                 "fx_count": chan_basic.fx.len(),
                 "bi_count": chan_basic.bi.len(),
+                "segment_count": chan_basic.segments.len(),
                 "render_hint": {
                     "merged_box": "draw rectangle by start_bar_id/end_bar_id/high/low",
                     "fx_line": "draw polyline by fx.bar_id/fx.price in fx order",
+                    "bi_line": "draw line by bi.start_bar_id/start_price to bi.end_bar_id/end_price",
+                    "segment_line": "draw line by segment.start_bar_id/start_price to segment.end_bar_id/end_price",
                     "calc_fields": "calc_high/calc_low are internal algorithm fields; high/low are visual envelope"
                 }
             },
@@ -91,6 +94,20 @@ fn main() -> Result<()> {
                 "end_bar_id": bi.end_bar_id,
                 "end_price": bi.end_price,
                 "confirmed": bi.confirmed
+            })).collect::<Vec<_>>(),
+            "segment_lines": chan_basic.segments.iter().map(|segment| json!({
+                "index": segment.index,
+                "n": segment.n,
+                "input_n": segment.input_n,
+                "direction": segment.direction,
+                "start_bi_index": segment.start_parent_index,
+                "end_bi_index": segment.end_parent_index,
+                "start_bar_id": segment.start_bar_id,
+                "start_price": segment.start_price,
+                "end_bar_id": segment.end_bar_id,
+                "end_price": segment.end_price,
+                "confirmed": segment.confirmed,
+                "reason": segment.reason
             })).collect::<Vec<_>>()
         }))?
     );

@@ -11,7 +11,8 @@
     "bars_count": 15,
     "merged_bars_count": 15,
     "fx_count": 4,
-    "bi_count": 3
+    "bi_count": 3,
+    "segment_count": 1
   },
   "merged_bars": [
     {
@@ -233,6 +234,19 @@
       "end_price": 15.0,
       "direction": "up",
       "is_sure": true
+    }
+  ],
+  "seg": [
+    {
+      "index": 0,
+      "start_bi_index": 0,
+      "end_bi_index": 2,
+      "start_raw_index": 1,
+      "end_raw_index": 13,
+      "start_price": 8.0,
+      "end_price": 15.0,
+      "direction": "up",
+      "is_sure": false
     }
   ]
 }

@@ -16,6 +16,7 @@ pub mod engine;
 pub mod fx;
 pub mod include;
 pub mod model;
+pub mod segment;
 pub mod standard;
 
 pub use bi::{build_bis, build_bis_with_min_span, normalize_fxs_for_bi};
@@ -30,3 +31,4 @@ pub use model::{
     ChanRhythmLine, ChanSegment, CHAN_SEGMENT_N_EXTENSION_START, CHAN_SEGMENT_N_LINE,
     CHAN_SEGMENT_N_SEGSEG,
 };
+pub use segment::{build_segments, build_segments_with_min_bi_count};

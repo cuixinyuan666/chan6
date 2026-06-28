@@ -117,10 +117,26 @@ def compact_bi(row: dict[str, Any]) -> dict[str, Any]:
     return {key: row.get(key) for key in keys}
 
 
+def compact_seg(row: dict[str, Any]) -> dict[str, Any]:
+    keys = [
+        "index",
+        "start_bi_index",
+        "end_bi_index",
+        "start_raw_index",
+        "end_raw_index",
+        "start_price",
+        "end_price",
+        "direction",
+        "is_sure",
+    ]
+    return {key: row.get(key) for key in keys}
+
+
 def normalize_gold(result: dict[str, Any]) -> dict[str, Any]:
     merged_bars = [compact_merged_bar(x) for x in result.get("merged_bars", [])]
     fx = [compact_fx(x) for x in result.get("fx", [])]
     bi = [compact_bi(x) for x in result.get("bi", [])]
+    seg = [compact_seg(x) for x in result.get("seg", [])]
     meta = result.get("meta") or {}
     return {
         "ok": bool(result.get("ok")),
@@ -136,10 +152,12 @@ def normalize_gold(result: dict[str, Any]) -> dict[str, Any]:
             "merged_bars_count": len(merged_bars),
             "fx_count": len(fx),
             "bi_count": len(bi),
+            "segment_count": len(seg),
         },
         "merged_bars": merged_bars,
         "fx": fx,
         "bi": bi,
+        "seg": seg,
     }
 
 
@@ -172,6 +190,7 @@ def main() -> int:
         f"merged_bars={gold['meta']['merged_bars_count']}",
         f"fx={gold['meta']['fx_count']}",
         f"bi={gold['meta']['bi_count']}",
+        f"seg={gold['meta']['segment_count']}",
     )
     if not gold["ok"]:
         print(f"warning: chan.py returned fallback/error: {result.get('error')}")
