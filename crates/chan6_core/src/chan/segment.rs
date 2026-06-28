@@ -11,14 +11,32 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
         return Vec::new();
     }
 
-    let start = &bis[0];
-    let end_index = latest_odd_bi_end_index(bis.len());
-    let end = &bis[end_index];
+    let main_end_index = latest_odd_bi_end_index(bis.len());
+    let mut segments = vec![make_segment(
+        0,
+        &bis[0],
+        &bis[main_end_index],
+        "chanpy_min_three_bi_link",
+    )];
 
-    vec![ChanSegment {
+    if main_end_index + 1 < bis.len() {
+        let tail = &bis[main_end_index + 1];
+        segments.push(make_segment(
+            1,
+            tail,
+            tail,
+            "chanpy_even_trailing_bi_segment",
+        ));
+    }
+
+    segments
+}
+
+fn make_segment(index: usize, start: &ChanBi, end: &ChanBi, reason: &str) -> ChanSegment {
+    ChanSegment {
         n: CHAN_SEGMENT_N_LINE,
         input_n: None,
-        index: 0,
+        index,
         direction: ChanDirection::from_prices(start.start_price, end.end_price),
         start_parent_index: Some(start.index),
         end_parent_index: Some(end.index),
@@ -27,8 +45,8 @@ pub fn build_segments_with_min_bi_count(bis: &[ChanBi], min_bi_count: usize) -> 
         end_bar_id: end.end_bar_id,
         end_price: end.end_price,
         confirmed: false,
-        reason: "chanpy_min_three_bi_link".to_string(),
-    }]
+        reason: reason.to_string(),
+    }
 }
 
 fn latest_odd_bi_end_index(bi_count: usize) -> usize {
@@ -74,6 +92,39 @@ mod tests {
         assert_eq!(segments[0].end_price, 15.0);
         assert!(!segments[0].confirmed);
         assert_eq!(segments[0].reason, "chanpy_min_three_bi_link");
+    }
+
+    #[test]
+    fn four_bis_keep_main_odd_segment_and_emit_even_tail_segment() {
+        let bis = vec![
+            bi(0, 1, 5, 8.0, 14.0),
+            bi(1, 5, 9, 14.0, 6.5),
+            bi(2, 9, 13, 6.5, 15.0),
+            bi(3, 13, 17, 15.0, 5.8),
+        ];
+
+        let segments = build_segments(&bis);
+
+        assert_eq!(segments.len(), 2);
+
+        assert_eq!(segments[0].index, 0);
+        assert_eq!(segments[0].direction, ChanDirection::Up);
+        assert_eq!(segments[0].start_parent_index, Some(0));
+        assert_eq!(segments[0].end_parent_index, Some(2));
+        assert_eq!(segments[0].start_bar_id, 1);
+        assert_eq!(segments[0].end_bar_id, 13);
+        assert_eq!(segments[0].reason, "chanpy_min_three_bi_link");
+
+        assert_eq!(segments[1].index, 1);
+        assert_eq!(segments[1].direction, ChanDirection::Down);
+        assert_eq!(segments[1].start_parent_index, Some(3));
+        assert_eq!(segments[1].end_parent_index, Some(3));
+        assert_eq!(segments[1].start_bar_id, 13);
+        assert_eq!(segments[1].start_price, 15.0);
+        assert_eq!(segments[1].end_bar_id, 17);
+        assert_eq!(segments[1].end_price, 5.8);
+        assert!(!segments[1].confirmed);
+        assert_eq!(segments[1].reason, "chanpy_even_trailing_bi_segment");
     }
 
     #[test]
