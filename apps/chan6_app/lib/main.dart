@@ -142,7 +142,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
       _loadingWindow = true;
       _windowOffset = safeOffset;
       _windowLimit = safeLimit;
-      _source = 'chan6_cli/query-chart';
+      _source = 'chan6_cli/query_chan_basic';
       _message =
           '$reason：正在加载窗口 offset=$_windowOffset, limit=$_windowLimit';
     });
@@ -166,7 +166,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
           _loadingChip = false;
           _windowOffset = previousOffset;
           _windowLimit = previousLimit;
-          _source = 'chan6_cli/query-chart';
+          _source = 'chan6_cli/query_chan_basic';
           _message =
               '$reason：窗口超出数据范围，已保留当前窗口 offset=$previousOffset, limit=$previousLimit';
         });
@@ -179,9 +179,9 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
         _loadingChip = false;
         _pendingBarId = null;
         _loadedChipBarId = state.meta.chipBarId;
-        _source = 'chan6_cli/query-chart';
+        _source = 'chan6_cli/query_chan_basic';
         _message =
-            '$reason：已加载K线窗口 offset=$_windowOffset, limit=$_windowLimit, kline_count=${state.kline.length}, chip_count=${state.chip.length}';
+            '$reason：Rust 缠论已加载，K=${state.kline.length}, 合并K=${state.mergedBoxes.length}, 分型=${state.fxLines.length}, 笔=${state.biLines.length}, chip=${state.chip.length}';
       });
     } catch (error) {
       if (!mounted || seq != _windowSeq) {
@@ -193,7 +193,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
         _windowOffset = previousOffset;
         _windowLimit = previousLimit;
         _message =
-            '$reason：query-chart 失败，已恢复当前窗口 offset=$previousOffset, limit=$previousLimit：$error';
+            '$reason：query_chan_basic 失败，已恢复当前窗口 offset=$previousOffset, limit=$previousLimit：$error';
       });
     }
   }
@@ -363,6 +363,14 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
             drawLineMode: _drawLineMode,
           ),
           Positioned(
+            left: 12,
+            top: 12,
+            child: _ChanBasicPanel(
+              state: state,
+              source: _source,
+            ),
+          ),
+          Positioned(
             right: 12,
             top: 12,
             child: _ToolBar(
@@ -398,6 +406,70 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ChanBasicPanel extends StatelessWidget {
+  const _ChanBasicPanel({
+    required this.state,
+    required this.source,
+  });
+
+  final ChartState state;
+  final String source;
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = state.meta;
+    final merged = meta.mergedCount ?? state.mergedBoxes.length;
+    final fx = meta.fxCount ?? state.fxLines.length;
+    final bi = meta.biCount ?? state.biLines.length;
+    final kline = meta.klineCount ?? state.kline.length;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 390),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xff4dd0e1).withValues(alpha: 0.45),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: DefaultTextStyle(
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xffd7eef2),
+              height: 1.25,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Rust Chan Basic 对齐面板',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xff80deea),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text('来源：$source；Flutter 只渲染 Rust 输出'),
+                Text('窗口：K线=$kline  合并K=$merged  分型=$fx  笔=$bi'),
+                Text('图层：合并K框=${state.mergedBoxes.length}  FX线=${state.fxLines.length}  BI线=${state.biLines.length}'),
+                const SizedBox(height: 6),
+                const Text('已对齐：include raw/calc、FX strict、BI free candidate'),
+                const Text('已对齐：check_fx_valid、BI endpoint update'),
+                const Text('锚点规则：bar_id + price，禁止屏幕坐标'),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
