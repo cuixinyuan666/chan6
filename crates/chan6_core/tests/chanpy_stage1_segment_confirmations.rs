@@ -43,6 +43,16 @@ fn chanpy_stage1_segment_seventh_reversal_confirmations_match_gold() {
     );
 }
 
+#[test]
+fn chanpy_stage1_segment_eighth_reversal_confirmations_match_gold() {
+    assert_candidate(
+        "stage1_segment_eighth_reversal_candidate",
+        include_str!("../../../fixtures/chanpy_stage1/input/stage1_segment_eighth_reversal_candidate.csv"),
+        include_str!("../../../fixtures/chanpy_stage1/gold/stage1_segment_eighth_reversal_candidate_chanpy_gold.json"),
+        &[false, false, true, true, true, false],
+    );
+}
+
 fn assert_candidate(symbol: &str, csv: &str, gold_text: &str, expected_confirmed: &[bool]) {
     let gold: Stage1Gold = serde_json::from_str(gold_text).unwrap();
     let klines = parse_stage1_csv(symbol, csv);
