@@ -1,3 +1,24 @@
+//! Stage-1 BSP construction aligned with local chan.py gold fixtures.
+//!
+//! Current scope:
+//! - bi-level B1 / S1 from segment end breaking its last inner ZS.
+//! - bi-level B2 from the pullback after a stored B1 / S1.
+//! - bi-level B2s from later same-side pullbacks while staying in the allowed segment context.
+//! - segment-level B1 / S1 from segment end breaking segment-level ZS.
+//!
+//! Important compatibility detail:
+//! chan.py exports BSP rows sorted by raw bar, but the `index` field is the generation index.
+//! Therefore this module assigns bi-level indices before the final display sort, then appends
+//! segment-level BSPs, and finally sorts rows without renumbering.
+//!
+//! Known gaps for later stages:
+//! - T1P / 1p is not implemented.
+//! - T3A / 3a and T3B / 3b are not implemented.
+//! - ChanConfig BSP options such as target bs_type, follow_1, follow_2, and rate thresholds
+//!   are not wired into Rust yet.
+//! - Divergence and peak filters are represented only by the behavior covered by current
+//!   stage1 gold fixtures.
+
 use super::model::{ChanBi, ChanDirection, ChanSegment};
 use super::zs::{ChanSegZs, ChanZs};
 
@@ -14,6 +35,11 @@ pub struct ChanBsp {
     pub confirmed: bool,
 }
 
+/// Build stage-1 BSP rows from Rust Chan structures.
+///
+/// The implementation intentionally follows the observable chan.py export behavior
+/// from committed stage1 gold fixtures instead of trying to expose every chan.py
+/// BSP configuration option at once.
 pub fn build_bsp(
     bis: &[ChanBi],
     segments: &[ChanSegment],
