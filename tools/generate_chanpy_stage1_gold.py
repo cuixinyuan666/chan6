@@ -132,11 +132,47 @@ def compact_seg(row: dict[str, Any]) -> dict[str, Any]:
     return {key: row.get(key) for key in keys}
 
 
+def compact_zs(row: dict[str, Any]) -> dict[str, Any]:
+    keys = [
+        "index",
+        "start_bi_index",
+        "end_bi_index",
+        "start_raw_index",
+        "end_raw_index",
+        "zg",
+        "zd",
+        "gg",
+        "dd",
+        "confirmed",
+    ]
+    return {key: row.get(key) for key in keys}
+
+
+def compact_bsp(row: dict[str, Any]) -> dict[str, Any]:
+    keys = [
+        "index",
+        "raw_index",
+        "time",
+        "price",
+        "type",
+        "level",
+        "bi_index",
+        "seg_index",
+        "zs_index",
+        "confirmed",
+    ]
+    return {key: row.get(key) for key in keys}
+
+
 def normalize_gold(result: dict[str, Any]) -> dict[str, Any]:
     merged_bars = [compact_merged_bar(x) for x in result.get("merged_bars", [])]
     fx = [compact_fx(x) for x in result.get("fx", [])]
     bi = [compact_bi(x) for x in result.get("bi", [])]
     seg = [compact_seg(x) for x in result.get("seg", [])]
+    segseg = [compact_seg(x) for x in result.get("segseg", [])]
+    zs = [compact_zs(x) for x in result.get("zs", [])]
+    seg_zs = [compact_zs(x) for x in result.get("seg_zs", [])]
+    bsp = [compact_bsp(x) for x in result.get("bsp", [])]
     meta = result.get("meta") or {}
     return {
         "ok": bool(result.get("ok")),
@@ -153,11 +189,19 @@ def normalize_gold(result: dict[str, Any]) -> dict[str, Any]:
             "fx_count": len(fx),
             "bi_count": len(bi),
             "segment_count": len(seg),
+            "segseg_count": len(segseg),
+            "zs_count": len(zs),
+            "seg_zs_count": len(seg_zs),
+            "bsp_count": len(bsp),
         },
         "merged_bars": merged_bars,
         "fx": fx,
         "bi": bi,
         "seg": seg,
+        "segseg": segseg,
+        "zs": zs,
+        "seg_zs": seg_zs,
+        "bsp": bsp,
     }
 
 
@@ -191,6 +235,10 @@ def main() -> int:
         f"fx={gold['meta']['fx_count']}",
         f"bi={gold['meta']['bi_count']}",
         f"seg={gold['meta']['segment_count']}",
+        f"segseg={gold['meta']['segseg_count']}",
+        f"zs={gold['meta']['zs_count']}",
+        f"seg_zs={gold['meta']['seg_zs_count']}",
+        f"bsp={gold['meta']['bsp_count']}",
     )
     if not gold["ok"]:
         print(f"warning: chan.py returned fallback/error: {result.get('error')}")

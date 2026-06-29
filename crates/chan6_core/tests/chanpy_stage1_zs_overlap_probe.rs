@@ -4,7 +4,7 @@ use chan6_core::model::KLine1m;
 use serde::Deserialize;
 
 #[test]
-fn chanpy_stage1_zs_overlap_probe_remains_segment_only_after_bi_alignment() {
+fn chanpy_stage1_zs_overlap_probe_exposes_zs_seg_zs_and_bsp_gold() {
     let symbol = "stage1_zs_overlap_probe_candidate";
     let csv =
         include_str!("../../../fixtures/chanpy_stage1/input/stage1_zs_overlap_probe_candidate.csv");
@@ -13,14 +13,27 @@ fn chanpy_stage1_zs_overlap_probe_remains_segment_only_after_bi_alignment() {
     );
 
     let gold: Stage1Gold = serde_json::from_str(gold_text).unwrap();
-    let gold_value: serde_json::Value = serde_json::from_str(gold_text).unwrap();
     let klines = parse_stage1_csv(symbol, csv);
     let snapshot = analyze_chan_basic(&klines);
 
+    // Stage-1 Rust already aligns hichan merged/fx/bi/seg on this fixture.
     assert_eq!(snapshot.meta.merged_count, gold.meta.merged_bars_count);
     assert_eq!(snapshot.meta.fx_count, gold.meta.fx_count);
     assert_eq!(snapshot.meta.bi_count, gold.meta.bi_count);
     assert_eq!(snapshot.meta.segment_count, gold.meta.segment_count);
+
+    // This fixture is the first hichan gold sample that exposes higher structures.
+    // Rust does not implement zs/seg_zs/bsp yet; this locks the authoritative gold
+    // output so the next implementation stage can be driven by executable data.
+    assert_eq!(gold.meta.segseg_count, 0);
+    assert_eq!(gold.meta.zs_count, 3);
+    assert_eq!(gold.meta.seg_zs_count, 1);
+    assert_eq!(gold.meta.bsp_count, 7);
+
+    assert_eq!(gold.segseg.len(), gold.meta.segseg_count);
+    assert_eq!(gold.zs.len(), gold.meta.zs_count);
+    assert_eq!(gold.seg_zs.len(), gold.meta.seg_zs_count);
+    assert_eq!(gold.bsp.len(), gold.meta.bsp_count);
 
     assert_eq!(snapshot.segments.len(), gold.seg.len());
 
@@ -43,10 +56,36 @@ fn chanpy_stage1_zs_overlap_probe_remains_segment_only_after_bi_alignment() {
         }
     }
 
-    assert!(gold_value.get("segseg").is_none() || gold_value["segseg"].is_null());
-    assert!(gold_value.get("zs").is_none() || gold_value["zs"].is_null());
-    assert!(gold_value.get("seg_zs").is_none() || gold_value["seg_zs"].is_null());
-    assert!(gold_value.get("bsp").is_none() || gold_value["bsp"].is_null());
+    assert_eq!(gold.zs[0].index, 0);
+    assert_eq!(gold.zs[0].start_bi_index, Some(4));
+    assert_eq!(gold.zs[0].end_bi_index, Some(8));
+    assert_eq!(gold.zs[0].start_raw_index, Some(17));
+    assert_eq!(gold.zs[0].end_raw_index, Some(37));
+    assert_close(gold.zs[0].zg, 13.5);
+    assert_close(gold.zs[0].zd, 5.8);
+    assert_close(gold.zs[0].gg, 14.2);
+    assert_close(gold.zs[0].dd, 3.0);
+
+    assert_eq!(gold.seg_zs[0].index, 0);
+    assert_eq!(gold.seg_zs[0].start_raw_index, Some(13));
+    assert_eq!(gold.seg_zs[0].end_raw_index, Some(116));
+    assert_close(gold.seg_zs[0].zg, 15.0);
+    assert_close(gold.seg_zs[0].zd, 2.5);
+    assert_close(gold.seg_zs[0].gg, 18.5);
+    assert_close(gold.seg_zs[0].dd, 0.5);
+
+    assert_eq!(gold.bsp[0].raw_index, 41);
+    assert_eq!(gold.bsp[0].price, 2.5);
+    assert_eq!(gold.bsp[0].kind, "B1");
+    assert_eq!(gold.bsp[0].level, "bi");
+    assert_eq!(gold.bsp[0].bi_index, Some(9));
+    assert_eq!(gold.bsp[0].confirmed, true);
+
+    let last_bsp = gold.bsp.last().unwrap();
+    assert_eq!(last_bsp.raw_index, 156);
+    assert_eq!(last_bsp.kind, "S1");
+    assert_eq!(last_bsp.level, "seg");
+    assert_eq!(last_bsp.seg_index, Some(6));
 }
 
 fn parse_stage1_csv(symbol: &str, csv_text: &str) -> Vec<KLine1m> {
@@ -91,6 +130,10 @@ fn assert_close(actual: f64, expected: f64) {
 struct Stage1Gold {
     meta: Stage1GoldMeta,
     seg: Vec<GoldSegment>,
+    segseg: Vec<GoldSegment>,
+    zs: Vec<GoldZs>,
+    seg_zs: Vec<GoldZs>,
+    bsp: Vec<GoldBsp>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,6 +142,10 @@ struct Stage1GoldMeta {
     fx_count: usize,
     bi_count: usize,
     segment_count: usize,
+    segseg_count: usize,
+    zs_count: usize,
+    seg_zs_count: usize,
+    bsp_count: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -112,4 +159,29 @@ struct GoldSegment {
     end_price: f64,
     direction: String,
     is_sure: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct GoldZs {
+    index: usize,
+    start_bi_index: Option<usize>,
+    end_bi_index: Option<usize>,
+    start_raw_index: Option<i64>,
+    end_raw_index: Option<i64>,
+    zg: f64,
+    zd: f64,
+    gg: f64,
+    dd: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct GoldBsp {
+    raw_index: i64,
+    price: f64,
+    #[serde(rename = "type")]
+    kind: String,
+    level: String,
+    bi_index: Option<usize>,
+    seg_index: Option<usize>,
+    confirmed: bool,
 }
