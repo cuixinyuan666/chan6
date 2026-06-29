@@ -14,8 +14,8 @@
 //! Known gaps for later stages:
 //! - T1P / 1p is not implemented.
 //! - T3A / 3a and T3B / 3b are not implemented.
-//! - ChanConfig BSP options such as target bs_type, follow_1, follow_2, and rate thresholds
-//!   are not wired into Rust yet.
+//! - ChanConfig BSP options for enabled/types/follow_1/follow_2 are wired.
+//! - Rate thresholds are not wired into Rust yet.
 //! - Divergence and peak filters are represented only by the behavior covered by current
 //!   stage1 gold fixtures.
 
@@ -52,7 +52,7 @@ pub fn build_bsp_with_config(
         return Vec::new();
     }
 
-    let mut rows = build_bsp(bis, segments, zs, seg_zs);
+    let mut rows = build_bsp_core(bis, segments, zs, seg_zs, config);
     rows.retain(|row| output_type_enabled(config, row));
     rows
 }
@@ -75,6 +75,16 @@ pub fn build_bsp(
     zs: &[ChanZs],
     seg_zs: &[ChanSegZs],
 ) -> Vec<ChanBsp> {
+    build_bsp_core(bis, segments, zs, seg_zs, &ChanBspConfig::default())
+}
+
+fn build_bsp_core(
+    bis: &[ChanBi],
+    segments: &[ChanSegment],
+    zs: &[ChanZs],
+    seg_zs: &[ChanSegZs],
+    config: &ChanBspConfig,
+) -> Vec<ChanBsp> {
     let mut bi_rows = Vec::new();
     let bi_seg = bi_segment_map(bis.len(), segments);
 
@@ -95,11 +105,12 @@ pub fn build_bsp(
         };
 
         let bi = &bis[end_i];
-        if !breaks(bi.direction, bi.end_price, z.zd, z.zg) {
+        let has_bsp1 = breaks(bi.direction, bi.end_price, z.zd, z.zg);
+        if has_bsp1 {
+            bi_rows.push(bi_bsp(bi, "1"));
+        } else if config.bsp2_follow_1 {
             continue;
         }
-
-        bi_rows.push(bi_bsp(bi, "1"));
 
         if end_i + 2 >= bis.len() {
             continue;
@@ -109,11 +120,12 @@ pub fn build_bsp(
         let b2 = &bis[end_i + 2];
         let b2_seg = bi_seg.get(b2.index).copied().flatten();
 
-        if amp(b2) / amp(break_bi) > 0.9999 {
+        let has_bsp2 = amp(b2) / amp(break_bi) <= 0.9999;
+        if has_bsp2 {
+            bi_rows.push(bi_bsp(b2, "2"));
+        } else if config.bsp2s_follow_2 {
             continue;
         }
-
-        bi_rows.push(bi_bsp(b2, "2"));
 
         let mut j = end_i + 4;
         while j < bis.len() {
