@@ -29,6 +29,18 @@ fn chanpy_stage1_segseg_probe_zs_gold_matches_rust_pipeline() {
     assert_eq!(gold.zs.len(), gold.meta.zs_count);
     assert_eq!(gold.seg_zs.len(), gold.meta.seg_zs_count);
     assert_eq!(gold.bsp.len(), gold.meta.bsp_count);
+    assert_eq!(snapshot.bsp.len(), gold.bsp.len());
+
+    for (actual, expected) in snapshot.bsp.iter().zip(&gold.bsp) {
+        assert_eq!(actual.index, expected.index);
+        assert_eq!(actual.bar_id, expected.raw_index);
+        assert_close(actual.price, expected.price);
+        assert_eq!(actual.bs_type, expected.kind);
+        assert_eq!(actual.level, expected.level);
+        assert_eq!(actual.bi_index, expected.bi_index);
+        assert_eq!(actual.segment_index, expected.seg_index);
+        assert_eq!(actual.confirmed, expected.confirmed);
+    }
 
     assert_eq!(snapshot.zs.len(), gold.zs.len());
 
@@ -100,7 +112,7 @@ struct Stage1Gold {
     segseg: Vec<serde_json::Value>,
     zs: Vec<GoldZs>,
     seg_zs: Vec<GoldZs>,
-    bsp: Vec<serde_json::Value>,
+    bsp: Vec<GoldBsp>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -126,4 +138,17 @@ struct GoldZs {
     zd: f64,
     gg: f64,
     dd: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct GoldBsp {
+    index: usize,
+    raw_index: i64,
+    price: f64,
+    #[serde(rename = "type")]
+    kind: String,
+    level: String,
+    bi_index: Option<usize>,
+    seg_index: Option<usize>,
+    confirmed: bool,
 }

@@ -23,8 +23,7 @@ fn chanpy_stage1_zs_overlap_probe_exposes_zs_seg_zs_and_bsp_gold() {
     assert_eq!(snapshot.meta.segment_count, gold.meta.segment_count);
 
     // This fixture is the first hichan gold sample that exposes higher structures.
-    // Rust does not implement zs/seg_zs/bsp yet; this locks the authoritative gold
-    // output so the next implementation stage can be driven by executable data.
+    // Rust now compares zs/seg_zs/bsp against authoritative chan.py gold output.
     assert_eq!(gold.meta.segseg_count, 0);
     assert_eq!(gold.meta.zs_count, 3);
     assert_eq!(gold.meta.seg_zs_count, 1);
@@ -37,6 +36,7 @@ fn chanpy_stage1_zs_overlap_probe_exposes_zs_seg_zs_and_bsp_gold() {
 
     assert_eq!(snapshot.segments.len(), gold.seg.len());
     assert_eq!(snapshot.zs.len(), gold.zs.len());
+    assert_eq!(snapshot.bsp.len(), gold.bsp.len());
 
     for (actual, expected) in snapshot.zs.iter().zip(&gold.zs) {
         assert_eq!(actual.index, expected.index);
@@ -48,6 +48,17 @@ fn chanpy_stage1_zs_overlap_probe_exposes_zs_seg_zs_and_bsp_gold() {
         assert_close(actual.zd, expected.zd);
         assert_close(actual.gg, expected.gg);
         assert_close(actual.dd, expected.dd);
+    }
+
+    for (actual, expected) in snapshot.bsp.iter().zip(&gold.bsp) {
+        assert_eq!(actual.index, expected.index);
+        assert_eq!(actual.bar_id, expected.raw_index);
+        assert_close(actual.price, expected.price);
+        assert_eq!(actual.bs_type, expected.kind);
+        assert_eq!(actual.level, expected.level);
+        assert_eq!(actual.bi_index, expected.bi_index);
+        assert_eq!(actual.segment_index, expected.seg_index);
+        assert_eq!(actual.confirmed, expected.confirmed);
     }
 
     for (actual, expected) in snapshot.segments.iter().zip(&gold.seg) {
@@ -189,6 +200,7 @@ struct GoldZs {
 
 #[derive(Debug, Deserialize)]
 struct GoldBsp {
+    index: usize,
     raw_index: i64,
     price: f64,
     #[serde(rename = "type")]

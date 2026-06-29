@@ -11,14 +11,15 @@
 //! - Rhythm lines are computed by Rust and rendered by Flutter.
 
 pub mod bi;
+pub mod bsp;
 pub mod config;
 pub mod engine;
 pub mod fx;
 pub mod include;
 pub mod model;
 pub mod segment;
-pub mod zs;
 pub mod standard;
+pub mod zs;
 
 pub use bi::{build_bis, build_bis_with_min_span, normalize_fxs_for_bi};
 pub use config::{ChanBiMode, ChanConfig, ChanFxMode, ChanIncludeMode, ChanSegmentN};
