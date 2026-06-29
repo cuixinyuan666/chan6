@@ -36,6 +36,19 @@ fn chanpy_stage1_zs_overlap_probe_exposes_zs_seg_zs_and_bsp_gold() {
     assert_eq!(gold.bsp.len(), gold.meta.bsp_count);
 
     assert_eq!(snapshot.segments.len(), gold.seg.len());
+    assert_eq!(snapshot.zs.len(), gold.zs.len());
+
+    for (actual, expected) in snapshot.zs.iter().zip(&gold.zs) {
+        assert_eq!(actual.index, expected.index);
+        assert_eq!(actual.start_bi_index, expected.start_bi_index.unwrap());
+        assert_eq!(actual.end_bi_index, expected.end_bi_index.unwrap());
+        assert_eq!(actual.start_bar_id, expected.start_raw_index.unwrap());
+        assert_eq!(actual.end_bar_id, expected.end_raw_index.unwrap());
+        assert_close(actual.zg, expected.zg);
+        assert_close(actual.zd, expected.zd);
+        assert_close(actual.gg, expected.gg);
+        assert_close(actual.dd, expected.dd);
+    }
 
     for (actual, expected) in snapshot.segments.iter().zip(&gold.seg) {
         assert_eq!(actual.index, expected.index);

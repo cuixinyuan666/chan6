@@ -8,6 +8,7 @@ use super::fx::detect_fxs;
 use super::include::merge_included_bars;
 use super::model::{ChanBar, ChanBi, ChanFx, ChanMergedBar, ChanSegment};
 use super::segment::build_segments;
+use super::zs::{build_zs, ChanZs};
 
 pub const CHAN_BASIC_SCHEMA_VERSION: u32 = 1;
 
@@ -35,6 +36,7 @@ pub struct ChanBasicSnapshot {
     pub fx: Vec<ChanFx>,
     pub bi: Vec<ChanBi>,
     pub segments: Vec<ChanSegment>,
+    pub zs: Vec<ChanZs>,
 }
 
 pub fn analyze_chan_basic(klines: &[KLine1m]) -> ChanBasicSnapshot {
@@ -51,6 +53,7 @@ pub fn analyze_chan_basic_with_config(
     let fx = detect_fxs(&merged_bars);
     let bi = build_bis_with_merged_bars(&fx, &merged_bars);
     let segments = build_segments(&bi);
+    let zs = build_zs(&bi, &segments);
 
     let symbol = bars
         .first()
@@ -80,6 +83,7 @@ pub fn analyze_chan_basic_with_config(
         fx,
         bi,
         segments,
+        zs,
     }
 }
 

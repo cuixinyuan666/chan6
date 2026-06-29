@@ -17,6 +17,7 @@ pub mod fx;
 pub mod include;
 pub mod model;
 pub mod segment;
+pub mod zs;
 pub mod standard;
 
 pub use bi::{build_bis, build_bis_with_min_span, normalize_fxs_for_bi};
