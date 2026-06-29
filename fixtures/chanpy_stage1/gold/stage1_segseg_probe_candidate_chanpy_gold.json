@@ -12,7 +12,11 @@
     "merged_bars_count": 160,
     "fx_count": 40,
     "bi_count": 32,
-    "segment_count": 8
+    "segment_count": 8,
+    "segseg_count": 0,
+    "zs_count": 3,
+    "seg_zs_count": 1,
+    "bsp_count": 8
   },
   "merged_bars": [
     {
@@ -2396,6 +2400,157 @@
       "end_price": 9.5,
       "direction": "down",
       "is_sure": false
+    }
+  ],
+  "segseg": [],
+  "zs": [
+    {
+      "index": 0,
+      "start_bi_index": 4,
+      "end_bi_index": 8,
+      "start_raw_index": 17,
+      "end_raw_index": 37,
+      "zg": 13.5,
+      "zd": 5.8,
+      "gg": 14.2,
+      "dd": 3.0,
+      "confirmed": null
+    },
+    {
+      "index": 1,
+      "start_bi_index": 20,
+      "end_bi_index": 24,
+      "start_raw_index": 88,
+      "end_raw_index": 111,
+      "zg": 16.0,
+      "zd": 2.0,
+      "gg": 20.5,
+      "dd": 1.0,
+      "confirmed": null
+    },
+    {
+      "index": 2,
+      "start_bi_index": 27,
+      "end_bi_index": 29,
+      "start_raw_index": 121,
+      "end_raw_index": 142,
+      "zg": 22.0,
+      "zd": 5.5,
+      "gg": 24.0,
+      "dd": 1.0,
+      "confirmed": null
+    }
+  ],
+  "seg_zs": [
+    {
+      "index": 0,
+      "start_bi_index": null,
+      "end_bi_index": null,
+      "start_raw_index": 13,
+      "end_raw_index": 116,
+      "zg": 15.0,
+      "zd": 2.5,
+      "gg": 18.5,
+      "dd": 0.5,
+      "confirmed": null
+    }
+  ],
+  "bsp": [
+    {
+      "index": 0,
+      "raw_index": 41,
+      "time": "2027/03/23",
+      "price": 2.5,
+      "type": "B1",
+      "level": "bi",
+      "bi_index": 9,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 1,
+      "raw_index": 49,
+      "time": "2027/03/31",
+      "price": 4.2,
+      "type": "B2",
+      "level": "bi",
+      "bi_index": 11,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 2,
+      "raw_index": 116,
+      "time": "2027/06/06",
+      "price": 0.5,
+      "type": "B1",
+      "level": "bi",
+      "bi_index": 25,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 3,
+      "raw_index": 127,
+      "time": "2027/06/17",
+      "price": 1.0,
+      "type": "B2",
+      "level": "bi",
+      "bi_index": 27,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 4,
+      "raw_index": 142,
+      "time": "2027/07/02",
+      "price": 5.5,
+      "type": "B2s",
+      "level": "bi",
+      "bi_index": 29,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 5,
+      "raw_index": 152,
+      "time": "2027/07/12",
+      "price": 30.0,
+      "type": "S1",
+      "level": "bi",
+      "bi_index": 30,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 7,
+      "raw_index": 152,
+      "time": "2027/07/12",
+      "price": 30.0,
+      "type": "S1",
+      "level": "seg",
+      "bi_index": null,
+      "seg_index": 6,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 6,
+      "raw_index": 156,
+      "time": "2027/07/16",
+      "price": 9.5,
+      "type": "B2s",
+      "level": "bi",
+      "bi_index": 31,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
     }
   ]
 }
