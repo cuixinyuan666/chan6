@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// - calculation is Rust-authoritative;
 /// - segment N defaults to the maximum derivable layer;
 /// - line segment = 1, segseg = 2, N >= 3 is Chan6 extension.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ChanConfig {
     pub include_mode: ChanIncludeMode,
     pub fx_mode: ChanFxMode,
@@ -29,12 +29,14 @@ impl Default for ChanConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ChanBspConfig {
     pub enabled: bool,
     pub types: Vec<ChanBspType>,
     pub bsp2_follow_1: bool,
     pub bsp2s_follow_2: bool,
+    pub max_bsp2_rate: f64,
+    pub max_bsp2s_rate: f64,
 }
 
 impl ChanBspConfig {
@@ -57,6 +59,8 @@ impl Default for ChanBspConfig {
             ],
             bsp2_follow_1: true,
             bsp2s_follow_2: true,
+            max_bsp2_rate: 0.9999,
+            max_bsp2s_rate: 0.9999,
         }
     }
 }
@@ -135,6 +139,8 @@ mod tests {
         );
         assert!(config.bsp.bsp2_follow_1);
         assert!(config.bsp.bsp2s_follow_2);
+        assert_eq!(config.bsp.max_bsp2_rate, 0.9999);
+        assert_eq!(config.bsp.max_bsp2s_rate, 0.9999);
     }
 
     #[test]

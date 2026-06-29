@@ -57,6 +57,62 @@ fn bsp2s_follow_2_blocks_b2s_when_b2_retrace_fails_by_default() {
     assert_eq!(loose_rows[0].bi_index, Some(6));
 }
 
+#[test]
+fn max_bsp2_rate_filters_b2_retrace() {
+    let bis = vec![
+        bi(0, ChanDirection::Up, 8.0, 18.0),
+        bi(1, ChanDirection::Down, 18.0, 11.0),
+        bi(2, ChanDirection::Down, 20.0, 8.0),
+        bi(3, ChanDirection::Up, 12.0, 22.0),
+        bi(4, ChanDirection::Down, 22.0, 15.0),
+    ];
+    let segments = vec![segment(0, ChanDirection::Down, 0, 2, 20.0, 8.0)];
+    let zs = vec![zs(0, Some(0), 0, 2, 15.0, 10.0)];
+
+    let mut default_config = ChanBspConfig::default();
+    default_config.types = vec![ChanBspType::T2];
+
+    let default_rows = build_bsp_with_config(&bis, &segments, &zs, &[], &default_config);
+    assert_eq!(default_rows.len(), 1);
+    assert_eq!(default_rows[0].bs_type, "B2");
+    assert_eq!(default_rows[0].bi_index, Some(4));
+
+    let mut strict_config = default_config;
+    strict_config.max_bsp2_rate = 0.6;
+
+    let strict_rows = build_bsp_with_config(&bis, &segments, &zs, &[], &strict_config);
+    assert!(strict_rows.is_empty());
+}
+
+#[test]
+fn max_bsp2s_rate_filters_b2s_retrace() {
+    let bis = vec![
+        bi(0, ChanDirection::Up, 8.0, 18.0),
+        bi(1, ChanDirection::Down, 18.0, 11.0),
+        bi(2, ChanDirection::Down, 20.0, 8.0),
+        bi(3, ChanDirection::Up, 12.0, 22.0),
+        bi(4, ChanDirection::Down, 22.0, 15.0),
+        bi(5, ChanDirection::Up, 15.0, 21.0),
+        bi(6, ChanDirection::Down, 21.0, 16.0),
+    ];
+    let segments = vec![segment(0, ChanDirection::Down, 0, 2, 20.0, 8.0)];
+    let zs = vec![zs(0, Some(0), 0, 2, 15.0, 10.0)];
+
+    let mut default_config = ChanBspConfig::default();
+    default_config.types = vec![ChanBspType::T2s];
+
+    let default_rows = build_bsp_with_config(&bis, &segments, &zs, &[], &default_config);
+    assert_eq!(default_rows.len(), 1);
+    assert_eq!(default_rows[0].bs_type, "B2s");
+    assert_eq!(default_rows[0].bi_index, Some(6));
+
+    let mut strict_config = default_config;
+    strict_config.max_bsp2s_rate = 0.5;
+
+    let strict_rows = build_bsp_with_config(&bis, &segments, &zs, &[], &strict_config);
+    assert!(strict_rows.is_empty());
+}
+
 fn bi(index: usize, direction: ChanDirection, start_price: f64, end_price: f64) -> ChanBi {
     ChanBi {
         index,

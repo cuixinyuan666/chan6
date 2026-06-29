@@ -15,7 +15,7 @@
 //! - T1P / 1p is not implemented.
 //! - T3A / 3a and T3B / 3b are not implemented.
 //! - ChanConfig BSP options for enabled/types/follow_1/follow_2 are wired.
-//! - Rate thresholds are not wired into Rust yet.
+//! - Rate thresholds are wired for B2 and B2s.
 //! - Divergence and peak filters are represented only by the behavior covered by current
 //!   stage1 gold fixtures.
 
@@ -120,7 +120,7 @@ fn build_bsp_core(
         let b2 = &bis[end_i + 2];
         let b2_seg = bi_seg.get(b2.index).copied().flatten();
 
-        let has_bsp2 = amp(b2) / amp(break_bi) <= 0.9999;
+        let has_bsp2 = amp(b2) / amp(break_bi) <= config.max_bsp2_rate;
         if has_bsp2 {
             bi_rows.push(bi_bsp(b2, "2"));
         } else if config.bsp2s_follow_2 {
@@ -157,7 +157,7 @@ fn build_bsp_core(
             if breaks_break(cand, break_bi) {
                 break;
             }
-            if (cand.end_price - break_bi.end_price).abs() / amp(break_bi) > 0.9999 {
+            if (cand.end_price - break_bi.end_price).abs() / amp(break_bi) > config.max_bsp2s_rate {
                 break;
             }
 
