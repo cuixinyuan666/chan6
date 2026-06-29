@@ -18,6 +18,7 @@
 - 1min K线可以由逐笔合成。
 - 筹码分布只能由逐笔累加，不能用 1min K线反推。
 - 十字辅助线定位到某根K时，查询该K收盘后的累计筹码状态。
+- K 线图可以拿到“包含关系处理后的合并框”和“顶底分型连线”，用于先做视觉验证。
 
 ## 支持的 CSV 表头
 
@@ -73,6 +74,22 @@ cargo run -p chan6_cli -- query-chip \
 ```
 
 返回的是从逐笔数据开始到该 `bar_id` 结束时的累计筹码状态。
+
+## 查询缠论基础画线数据
+
+```bash
+cargo run -p chan6_cli --bin query_chan_basic -- \
+  --db ./data/cache/chan6_kline_chip.db \
+  --symbol 000001 \
+  --offset 0 \
+  --limit 300
+```
+
+返回 JSON 里新增：
+
+- `chan_basic.merged_boxes`：包含关系处理后的合并 K 线框，前端可画矩形框。
+- `chan_basic.fx_points`：顶/底分型点，落到合并框内首次出现极值的原始 K 线。
+- `chan_basic.fx_lines`：相邻顶底分型连线，前端可直接画线做视觉验证。
 
 ## SQLite 表
 
