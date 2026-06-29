@@ -15,6 +15,22 @@ pub struct ChanZs {
     pub parent_segment_index: Option<usize>,
 }
 
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ChanSegZs {
+    pub index: usize,
+    pub start_segment_index: usize,
+    pub end_segment_index: usize,
+    pub start_bar_id: i64,
+    pub end_bar_id: i64,
+    pub zg: f64,
+    pub zd: f64,
+    pub gg: f64,
+    pub dd: f64,
+    pub confirmed: bool,
+}
+
+
 pub fn build_zs(bis: &[ChanBi], segments: &[ChanSegment]) -> Vec<ChanZs> {
     let mut result = Vec::new();
 
@@ -86,6 +102,97 @@ pub fn build_zs(bis: &[ChanBi], segments: &[ChanSegment]) -> Vec<ChanZs> {
 
     result
 }
+
+
+pub fn build_seg_zs(segments: &[ChanSegment]) -> Vec<ChanSegZs> {
+    let mut result = Vec::new();
+
+    if segments.len() < 4 {
+        return result;
+    }
+
+    // hichan/chan.py observed seg_zs starts after the first segment and extends
+    // through the last confirmed segment. The final active/reversal tail segment
+    // is not included in the segment-level center.
+    let Some(last_confirmed_segment_index) = segments.iter().rposition(|segment| segment.confirmed)
+    else {
+        return result;
+    };
+
+    let mut cursor = 1usize;
+    while cursor + 2 <= last_confirmed_segment_index {
+        let Some((zg, zd, mut gg, mut dd)) = initial_three_segment_zs_range(segments, cursor)
+        else {
+            cursor += 1;
+            continue;
+        };
+
+        let mut end_segment_index = cursor + 2;
+        let mut next_segment_index = end_segment_index + 1;
+
+        while next_segment_index <= last_confirmed_segment_index {
+            let (low, high) = segment_range(&segments[next_segment_index]);
+
+            if high < zd || low > zg {
+                break;
+            }
+
+            gg = gg.max(high);
+            dd = dd.min(low);
+            end_segment_index = next_segment_index;
+            next_segment_index += 1;
+        }
+
+        result.push(ChanSegZs {
+            index: result.len(),
+            start_segment_index: cursor,
+            end_segment_index,
+            start_bar_id: segments[cursor].start_bar_id,
+            end_bar_id: segments[end_segment_index].end_bar_id,
+            zg,
+            zd,
+            gg,
+            dd,
+            confirmed: false,
+        });
+
+        cursor = end_segment_index + 1;
+    }
+
+    result
+}
+
+fn initial_three_segment_zs_range(
+    segments: &[ChanSegment],
+    start: usize,
+) -> Option<(f64, f64, f64, f64)> {
+    let mut zg = f64::INFINITY;
+    let mut zd = f64::NEG_INFINITY;
+    let mut gg = f64::NEG_INFINITY;
+    let mut dd = f64::INFINITY;
+
+    for segment in &segments[start..=start + 2] {
+        let (low, high) = segment_range(segment);
+        zg = zg.min(high);
+        zd = zd.max(low);
+        gg = gg.max(high);
+        dd = dd.min(low);
+    }
+
+    if zd <= zg {
+        Some((zg, zd, gg, dd))
+    } else {
+        None
+    }
+}
+
+fn segment_range(segment: &ChanSegment) -> (f64, f64) {
+    (
+        segment.start_price.min(segment.end_price),
+        segment.start_price.max(segment.end_price),
+    )
+}
+
 
 fn initial_three_bi_zs_range(bis: &[ChanBi], start: usize) -> Option<(f64, f64, f64, f64)> {
     let mut zg = f64::INFINITY;
