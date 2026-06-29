@@ -19,6 +19,7 @@
 //! - Divergence and peak filters are represented only by the behavior covered by current
 //!   stage1 gold fixtures.
 
+use super::config::ChanBspConfig;
 use super::model::{ChanBi, ChanDirection, ChanSegment};
 use super::zs::{ChanSegZs, ChanZs};
 
@@ -40,6 +41,20 @@ pub struct ChanBsp {
 /// The implementation intentionally follows the observable chan.py export behavior
 /// from committed stage1 gold fixtures instead of trying to expose every chan.py
 /// BSP configuration option at once.
+pub fn build_bsp_with_config(
+    bis: &[ChanBi],
+    segments: &[ChanSegment],
+    zs: &[ChanZs],
+    seg_zs: &[ChanSegZs],
+    config: &ChanBspConfig,
+) -> Vec<ChanBsp> {
+    if !config.enabled {
+        return Vec::new();
+    }
+
+    build_bsp(bis, segments, zs, seg_zs)
+}
+
 pub fn build_bsp(
     bis: &[ChanBi],
     segments: &[ChanSegment],

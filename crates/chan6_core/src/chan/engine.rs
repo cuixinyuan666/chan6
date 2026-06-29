@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::model::KLine1m;
 
 use super::bi::build_bis_with_merged_bars;
-use super::bsp::{build_bsp, ChanBsp};
+use super::bsp::{build_bsp_with_config, ChanBsp};
 use super::config::ChanConfig;
 use super::fx::detect_fxs;
 use super::include::merge_included_bars;
@@ -58,7 +58,7 @@ pub fn analyze_chan_basic_with_config(
     let segments = build_segments(&bi);
     let zs = build_zs(&bi, &segments);
     let seg_zs = build_seg_zs(&segments);
-    let bsp = build_bsp(&bi, &segments, &zs, &seg_zs);
+    let bsp = build_bsp_with_config(&bi, &segments, &zs, &seg_zs, &config.bsp);
 
     let symbol = bars
         .first()

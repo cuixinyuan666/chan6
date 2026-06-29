@@ -12,6 +12,7 @@ pub struct ChanConfig {
     pub fx_mode: ChanFxMode,
     pub bi_mode: ChanBiMode,
     pub segment_n: ChanSegmentN,
+    pub bsp: ChanBspConfig,
     pub enable_rhythm_lines: bool,
 }
 
@@ -22,9 +23,52 @@ impl Default for ChanConfig {
             fx_mode: ChanFxMode::Strict,
             bi_mode: ChanBiMode::Normal,
             segment_n: ChanSegmentN::MaxDerivable,
+            bsp: ChanBspConfig::default(),
             enable_rhythm_lines: true,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ChanBspConfig {
+    pub enabled: bool,
+    pub types: Vec<ChanBspType>,
+    pub bsp2_follow_1: bool,
+    pub bsp2s_follow_2: bool,
+}
+
+impl Default for ChanBspConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            types: vec![
+                ChanBspType::T1,
+                ChanBspType::T1p,
+                ChanBspType::T2,
+                ChanBspType::T2s,
+                ChanBspType::T3a,
+                ChanBspType::T3b,
+            ],
+            bsp2_follow_1: true,
+            bsp2s_follow_2: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ChanBspType {
+    #[serde(rename = "1")]
+    T1,
+    #[serde(rename = "1p")]
+    T1p,
+    #[serde(rename = "2")]
+    T2,
+    #[serde(rename = "2s")]
+    T2s,
+    #[serde(rename = "3a")]
+    T3a,
+    #[serde(rename = "3b")]
+    T3b,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -65,7 +109,27 @@ impl ChanSegmentN {
 
 #[cfg(test)]
 mod tests {
-    use super::{ChanConfig, ChanSegmentN};
+    use super::{ChanBspType, ChanConfig, ChanSegmentN};
+
+    #[test]
+    fn default_bsp_config_preserves_stage1_scope() {
+        let config = ChanConfig::default();
+
+        assert!(config.bsp.enabled);
+        assert_eq!(
+            config.bsp.types,
+            vec![
+                ChanBspType::T1,
+                ChanBspType::T1p,
+                ChanBspType::T2,
+                ChanBspType::T2s,
+                ChanBspType::T3a,
+                ChanBspType::T3b,
+            ]
+        );
+        assert!(config.bsp.bsp2_follow_1);
+        assert!(config.bsp.bsp2s_follow_2);
+    }
 
     #[test]
     fn default_segment_n_is_max_derivable() {

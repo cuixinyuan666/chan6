@@ -1,5 +1,6 @@
-use chan6_core::chan::analyze_chan_basic;
+use chan6_core::chan::config::ChanConfig;
 use chan6_core::chan::model::{ChanDirection, CHAN_SEGMENT_N_LINE};
+use chan6_core::chan::{analyze_chan_basic, analyze_chan_basic_with_config};
 use chan6_core::model::KLine1m;
 use serde::Deserialize;
 
@@ -110,6 +111,23 @@ fn chanpy_stage1_zs_overlap_probe_exposes_zs_seg_zs_and_bsp_gold() {
     assert_eq!(last_bsp.kind, "S1");
     assert_eq!(last_bsp.level, "seg");
     assert_eq!(last_bsp.seg_index, Some(6));
+}
+
+#[test]
+fn chanpy_stage1_zs_overlap_probe_can_disable_bsp_from_config() {
+    let symbol = "stage1_zs_overlap_probe_candidate";
+    let csv =
+        include_str!("../../../fixtures/chanpy_stage1/input/stage1_zs_overlap_probe_candidate.csv");
+
+    let klines = parse_stage1_csv(symbol, csv);
+    let default_snapshot = analyze_chan_basic(&klines);
+    assert!(!default_snapshot.bsp.is_empty());
+
+    let mut config = ChanConfig::default();
+    config.bsp.enabled = false;
+
+    let disabled_snapshot = analyze_chan_basic_with_config(&klines, "1m", &config);
+    assert!(disabled_snapshot.bsp.is_empty());
 }
 
 fn parse_stage1_csv(symbol: &str, csv_text: &str) -> Vec<KLine1m> {
