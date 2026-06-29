@@ -26,6 +26,7 @@ fn build_bis_internal(
     let mut bis = Vec::new();
     let mut free_fxs: Vec<&ChanFx> = Vec::new();
     let mut last_bi_end: Option<&ChanFx> = None;
+    let mut pending_opposite_fx: Option<&ChanFx> = None;
 
     for fx in fxs {
         if let Some(last_end) = last_bi_end {
@@ -33,12 +34,24 @@ fn build_bis_internal(
                 if is_stronger_same_kind_fx(fx, last_end) {
                     update_last_bi_end(&mut bis, fx);
                     last_bi_end = Some(fx);
+                    pending_opposite_fx = None;
                 }
                 continue;
             }
-            if can_make_bi(last_end, fx, min_merged_span, merged_bars) {
-                push_bi(&mut bis, last_end, fx);
-                last_bi_end = Some(fx);
+
+            if let Some(pending) = pending_opposite_fx {
+                if !is_stronger_or_equal_same_kind_fx(fx, pending) {
+                    continue;
+                }
+            }
+
+            pending_opposite_fx = Some(fx);
+            let candidate = pending_opposite_fx.expect("pending opposite fx just set");
+
+            if can_make_bi(last_end, candidate, min_merged_span, merged_bars) {
+                push_bi(&mut bis, last_end, candidate);
+                last_bi_end = Some(candidate);
+                pending_opposite_fx = None;
             }
             continue;
         }
@@ -259,6 +272,17 @@ pub fn normalize_fxs_for_bi(fxs: &[ChanFx], min_merged_span: usize) -> Vec<&Chan
     }
 
     normalized
+}
+
+fn is_stronger_or_equal_same_kind_fx(candidate: &ChanFx, current: &ChanFx) -> bool {
+    if candidate.kind != current.kind {
+        return false;
+    }
+
+    match candidate.kind {
+        ChanFxKind::Top => candidate.price >= current.price,
+        ChanFxKind::Bottom => candidate.price <= current.price,
+    }
 }
 
 pub fn is_stronger_same_kind_fx(candidate: &ChanFx, current: &ChanFx) -> bool {
