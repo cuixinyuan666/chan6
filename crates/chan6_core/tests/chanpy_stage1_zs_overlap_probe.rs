@@ -1,4 +1,4 @@
-use chan6_core::chan::config::ChanConfig;
+use chan6_core::chan::config::{ChanBspType, ChanConfig};
 use chan6_core::chan::model::{ChanDirection, CHAN_SEGMENT_N_LINE};
 use chan6_core::chan::{analyze_chan_basic, analyze_chan_basic_with_config};
 use chan6_core::model::KLine1m;
@@ -128,6 +128,59 @@ fn chanpy_stage1_zs_overlap_probe_can_disable_bsp_from_config() {
 
     let disabled_snapshot = analyze_chan_basic_with_config(&klines, "1m", &config);
     assert!(disabled_snapshot.bsp.is_empty());
+}
+
+#[test]
+fn chanpy_stage1_zs_overlap_probe_filters_bsp_output_types() {
+    let symbol = "stage1_zs_overlap_probe_candidate";
+    let csv =
+        include_str!("../../../fixtures/chanpy_stage1/input/stage1_zs_overlap_probe_candidate.csv");
+
+    let klines = parse_stage1_csv(symbol, csv);
+
+    let mut only_t1 = ChanConfig::default();
+    only_t1.bsp.types = vec![ChanBspType::T1];
+
+    let only_t1_snapshot = analyze_chan_basic_with_config(&klines, "1m", &only_t1);
+    assert_eq!(only_t1_snapshot.bsp.len(), 4);
+    assert!(only_t1_snapshot
+        .bsp
+        .iter()
+        .all(|point| point.bs_type == "B1" || point.bs_type == "S1"));
+    assert_eq!(
+        only_t1_snapshot
+            .bsp
+            .iter()
+            .map(|point| point.index)
+            .collect::<Vec<_>>(),
+        vec![0, 2, 5, 6]
+    );
+
+    let mut only_t2 = ChanConfig::default();
+    only_t2.bsp.types = vec![ChanBspType::T2];
+
+    let only_t2_snapshot = analyze_chan_basic_with_config(&klines, "1m", &only_t2);
+    assert_eq!(only_t2_snapshot.bsp.len(), 2);
+    assert!(only_t2_snapshot
+        .bsp
+        .iter()
+        .all(|point| point.bs_type == "B2"));
+    assert_eq!(
+        only_t2_snapshot
+            .bsp
+            .iter()
+            .map(|point| point.index)
+            .collect::<Vec<_>>(),
+        vec![1, 3]
+    );
+
+    let mut only_t2s = ChanConfig::default();
+    only_t2s.bsp.types = vec![ChanBspType::T2s];
+
+    let only_t2s_snapshot = analyze_chan_basic_with_config(&klines, "1m", &only_t2s);
+    assert_eq!(only_t2s_snapshot.bsp.len(), 1);
+    assert_eq!(only_t2s_snapshot.bsp[0].bs_type, "B2s");
+    assert_eq!(only_t2s_snapshot.bsp[0].index, 4);
 }
 
 fn parse_stage1_csv(symbol: &str, csv_text: &str) -> Vec<KLine1m> {

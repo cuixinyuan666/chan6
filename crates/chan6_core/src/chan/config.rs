@@ -37,6 +37,12 @@ pub struct ChanBspConfig {
     pub bsp2s_follow_2: bool,
 }
 
+impl ChanBspConfig {
+    pub fn is_type_enabled(&self, bsp_type: ChanBspType) -> bool {
+        self.types.contains(&bsp_type)
+    }
+}
+
 impl Default for ChanBspConfig {
     fn default() -> Self {
         Self {

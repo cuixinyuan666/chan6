@@ -19,7 +19,7 @@
 //! - Divergence and peak filters are represented only by the behavior covered by current
 //!   stage1 gold fixtures.
 
-use super::config::ChanBspConfig;
+use super::config::{ChanBspConfig, ChanBspType};
 use super::model::{ChanBi, ChanDirection, ChanSegment};
 use super::zs::{ChanSegZs, ChanZs};
 
@@ -52,7 +52,21 @@ pub fn build_bsp_with_config(
         return Vec::new();
     }
 
-    build_bsp(bis, segments, zs, seg_zs)
+    let mut rows = build_bsp(bis, segments, zs, seg_zs);
+    rows.retain(|row| output_type_enabled(config, row));
+    rows
+}
+
+fn output_type_enabled(config: &ChanBspConfig, row: &ChanBsp) -> bool {
+    match row.bs_type.as_str() {
+        "B1" | "S1" => config.is_type_enabled(ChanBspType::T1),
+        "B1p" | "S1p" => config.is_type_enabled(ChanBspType::T1p),
+        "B2" | "S2" => config.is_type_enabled(ChanBspType::T2),
+        "B2s" | "S2s" => config.is_type_enabled(ChanBspType::T2s),
+        "B3a" | "S3a" => config.is_type_enabled(ChanBspType::T3a),
+        "B3b" | "S3b" => config.is_type_enabled(ChanBspType::T3b),
+        _ => false,
+    }
 }
 
 pub fn build_bsp(
