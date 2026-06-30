@@ -1,0 +1,2597 @@
+{
+  "ok": true,
+  "meta": {
+    "engine": "chan.py",
+    "symbol": "stage1_t3a_append_003_t3a_flat_LOCAL.LOCAL",
+    "freq": "DAILY",
+    "adjust": "QFQ",
+    "mode": "once",
+    "gold_source": "hichan/chan.py",
+    "generated_by": "tools/generate_chanpy_stage1_gold.py",
+    "bars_count": 171,
+    "merged_bars_count": 167,
+    "fx_count": 40,
+    "bi_count": 32,
+    "segment_count": 8,
+    "segseg_count": 0,
+    "zs_count": 3,
+    "seg_zs_count": 1,
+    "bsp_count": 5
+  },
+  "merged_bars": [
+    {
+      "index": 0,
+      "start_raw_index": 0,
+      "end_raw_index": 0,
+      "high_raw_index": 0,
+      "low_raw_index": 0,
+      "open": 11.0,
+      "high": 12.0,
+      "low": 10.0,
+      "close": 11.2
+    },
+    {
+      "index": 1,
+      "start_raw_index": 1,
+      "end_raw_index": 1,
+      "high_raw_index": 1,
+      "low_raw_index": 1,
+      "open": 10.5,
+      "high": 10.8,
+      "low": 8.0,
+      "close": 8.4
+    },
+    {
+      "index": 2,
+      "start_raw_index": 2,
+      "end_raw_index": 2,
+      "high_raw_index": 2,
+      "low_raw_index": 2,
+      "open": 8.6,
+      "high": 11.0,
+      "low": 8.6,
+      "close": 10.8
+    },
+    {
+      "index": 3,
+      "start_raw_index": 3,
+      "end_raw_index": 3,
+      "high_raw_index": 3,
+      "low_raw_index": 3,
+      "open": 10.2,
+      "high": 11.5,
+      "low": 9.5,
+      "close": 11.2
+    },
+    {
+      "index": 4,
+      "start_raw_index": 4,
+      "end_raw_index": 4,
+      "high_raw_index": 4,
+      "low_raw_index": 4,
+      "open": 11.0,
+      "high": 12.5,
+      "low": 10.5,
+      "close": 12.2
+    },
+    {
+      "index": 5,
+      "start_raw_index": 5,
+      "end_raw_index": 5,
+      "high_raw_index": 5,
+      "low_raw_index": 5,
+      "open": 12.0,
+      "high": 14.0,
+      "low": 12.0,
+      "close": 13.6
+    },
+    {
+      "index": 6,
+      "start_raw_index": 6,
+      "end_raw_index": 6,
+      "high_raw_index": 6,
+      "low_raw_index": 6,
+      "open": 13.0,
+      "high": 13.2,
+      "low": 11.0,
+      "close": 11.4
+    },
+    {
+      "index": 7,
+      "start_raw_index": 7,
+      "end_raw_index": 7,
+      "high_raw_index": 7,
+      "low_raw_index": 7,
+      "open": 11.2,
+      "high": 12.4,
+      "low": 9.8,
+      "close": 10.2
+    },
+    {
+      "index": 8,
+      "start_raw_index": 8,
+      "end_raw_index": 8,
+      "high_raw_index": 8,
+      "low_raw_index": 8,
+      "open": 10.0,
+      "high": 11.5,
+      "low": 8.5,
+      "close": 8.8
+    },
+    {
+      "index": 9,
+      "start_raw_index": 9,
+      "end_raw_index": 9,
+      "high_raw_index": 9,
+      "low_raw_index": 9,
+      "open": 8.6,
+      "high": 10.5,
+      "low": 6.5,
+      "close": 7.0
+    },
+    {
+      "index": 10,
+      "start_raw_index": 10,
+      "end_raw_index": 10,
+      "high_raw_index": 10,
+      "low_raw_index": 10,
+      "open": 7.2,
+      "high": 11.0,
+      "low": 7.2,
+      "close": 10.6
+    },
+    {
+      "index": 11,
+      "start_raw_index": 11,
+      "end_raw_index": 11,
+      "high_raw_index": 11,
+      "low_raw_index": 11,
+      "open": 10.4,
+      "high": 12.0,
+      "low": 8.8,
+      "close": 11.6
+    },
+    {
+      "index": 12,
+      "start_raw_index": 12,
+      "end_raw_index": 12,
+      "high_raw_index": 12,
+      "low_raw_index": 12,
+      "open": 11.4,
+      "high": 13.0,
+      "low": 10.0,
+      "close": 12.8
+    },
+    {
+      "index": 13,
+      "start_raw_index": 13,
+      "end_raw_index": 13,
+      "high_raw_index": 13,
+      "low_raw_index": 13,
+      "open": 12.6,
+      "high": 15.0,
+      "low": 12.0,
+      "close": 14.6
+    },
+    {
+      "index": 14,
+      "start_raw_index": 14,
+      "end_raw_index": 14,
+      "high_raw_index": 14,
+      "low_raw_index": 14,
+      "open": 14.0,
+      "high": 14.0,
+      "low": 11.0,
+      "close": 11.4
+    },
+    {
+      "index": 15,
+      "start_raw_index": 15,
+      "end_raw_index": 15,
+      "high_raw_index": 15,
+      "low_raw_index": 15,
+      "open": 11.2,
+      "high": 13.0,
+      "low": 9.0,
+      "close": 9.4
+    },
+    {
+      "index": 16,
+      "start_raw_index": 16,
+      "end_raw_index": 16,
+      "high_raw_index": 16,
+      "low_raw_index": 16,
+      "open": 9.2,
+      "high": 12.0,
+      "low": 7.0,
+      "close": 7.5
+    },
+    {
+      "index": 17,
+      "start_raw_index": 17,
+      "end_raw_index": 17,
+      "high_raw_index": 17,
+      "low_raw_index": 17,
+      "open": 7.4,
+      "high": 9.8,
+      "low": 5.8,
+      "close": 6.2
+    },
+    {
+      "index": 18,
+      "start_raw_index": 18,
+      "end_raw_index": 18,
+      "high_raw_index": 18,
+      "low_raw_index": 18,
+      "open": 6.4,
+      "high": 10.8,
+      "low": 6.4,
+      "close": 10.2
+    },
+    {
+      "index": 19,
+      "start_raw_index": 19,
+      "end_raw_index": 19,
+      "high_raw_index": 19,
+      "low_raw_index": 19,
+      "open": 10.0,
+      "high": 12.4,
+      "low": 8.8,
+      "close": 11.8
+    },
+    {
+      "index": 20,
+      "start_raw_index": 20,
+      "end_raw_index": 20,
+      "high_raw_index": 20,
+      "low_raw_index": 20,
+      "open": 11.6,
+      "high": 13.8,
+      "low": 10.8,
+      "close": 13.2
+    },
+    {
+      "index": 21,
+      "start_raw_index": 21,
+      "end_raw_index": 21,
+      "high_raw_index": 21,
+      "low_raw_index": 21,
+      "open": 13.0,
+      "high": 14.2,
+      "low": 12.5,
+      "close": 13.8
+    },
+    {
+      "index": 22,
+      "start_raw_index": 22,
+      "end_raw_index": 22,
+      "high_raw_index": 22,
+      "low_raw_index": 22,
+      "open": 13.6,
+      "high": 13.8,
+      "low": 11.5,
+      "close": 12.0
+    },
+    {
+      "index": 23,
+      "start_raw_index": 23,
+      "end_raw_index": 23,
+      "high_raw_index": 23,
+      "low_raw_index": 23,
+      "open": 11.8,
+      "high": 12.5,
+      "low": 9.0,
+      "close": 9.4
+    },
+    {
+      "index": 24,
+      "start_raw_index": 24,
+      "end_raw_index": 24,
+      "high_raw_index": 24,
+      "low_raw_index": 24,
+      "open": 9.2,
+      "high": 10.5,
+      "low": 6.0,
+      "close": 6.4
+    },
+    {
+      "index": 25,
+      "start_raw_index": 25,
+      "end_raw_index": 25,
+      "high_raw_index": 25,
+      "low_raw_index": 25,
+      "open": 6.2,
+      "high": 8.5,
+      "low": 4.0,
+      "close": 4.6
+    },
+    {
+      "index": 26,
+      "start_raw_index": 26,
+      "end_raw_index": 26,
+      "high_raw_index": 26,
+      "low_raw_index": 26,
+      "open": 4.8,
+      "high": 9.0,
+      "low": 4.8,
+      "close": 8.6
+    },
+    {
+      "index": 27,
+      "start_raw_index": 27,
+      "end_raw_index": 27,
+      "high_raw_index": 27,
+      "low_raw_index": 27,
+      "open": 8.4,
+      "high": 11.5,
+      "low": 7.0,
+      "close": 11.0
+    },
+    {
+      "index": 28,
+      "start_raw_index": 28,
+      "end_raw_index": 28,
+      "high_raw_index": 28,
+      "low_raw_index": 28,
+      "open": 10.8,
+      "high": 13.0,
+      "low": 9.5,
+      "close": 12.6
+    },
+    {
+      "index": 29,
+      "start_raw_index": 29,
+      "end_raw_index": 29,
+      "high_raw_index": 29,
+      "low_raw_index": 29,
+      "open": 12.4,
+      "high": 13.5,
+      "low": 11.0,
+      "close": 13.0
+    },
+    {
+      "index": 30,
+      "start_raw_index": 30,
+      "end_raw_index": 30,
+      "high_raw_index": 30,
+      "low_raw_index": 30,
+      "open": 12.8,
+      "high": 12.9,
+      "low": 10.0,
+      "close": 10.5
+    },
+    {
+      "index": 31,
+      "start_raw_index": 31,
+      "end_raw_index": 31,
+      "high_raw_index": 31,
+      "low_raw_index": 31,
+      "open": 10.2,
+      "high": 11.0,
+      "low": 7.0,
+      "close": 7.5
+    },
+    {
+      "index": 32,
+      "start_raw_index": 32,
+      "end_raw_index": 32,
+      "high_raw_index": 32,
+      "low_raw_index": 32,
+      "open": 7.2,
+      "high": 8.5,
+      "low": 4.5,
+      "close": 5.0
+    },
+    {
+      "index": 33,
+      "start_raw_index": 33,
+      "end_raw_index": 33,
+      "high_raw_index": 33,
+      "low_raw_index": 33,
+      "open": 4.8,
+      "high": 7.0,
+      "low": 3.0,
+      "close": 3.5
+    },
+    {
+      "index": 34,
+      "start_raw_index": 34,
+      "end_raw_index": 34,
+      "high_raw_index": 34,
+      "low_raw_index": 34,
+      "open": 3.6,
+      "high": 8.0,
+      "low": 3.6,
+      "close": 7.5
+    },
+    {
+      "index": 35,
+      "start_raw_index": 35,
+      "end_raw_index": 35,
+      "high_raw_index": 35,
+      "low_raw_index": 35,
+      "open": 7.3,
+      "high": 10.5,
+      "low": 6.5,
+      "close": 10.0
+    },
+    {
+      "index": 36,
+      "start_raw_index": 36,
+      "end_raw_index": 36,
+      "high_raw_index": 36,
+      "low_raw_index": 36,
+      "open": 9.8,
+      "high": 12.0,
+      "low": 9.0,
+      "close": 11.5
+    },
+    {
+      "index": 37,
+      "start_raw_index": 37,
+      "end_raw_index": 37,
+      "high_raw_index": 37,
+      "low_raw_index": 37,
+      "open": 11.3,
+      "high": 12.5,
+      "low": 10.0,
+      "close": 12.0
+    },
+    {
+      "index": 38,
+      "start_raw_index": 38,
+      "end_raw_index": 38,
+      "high_raw_index": 38,
+      "low_raw_index": 38,
+      "open": 11.8,
+      "high": 11.8,
+      "low": 8.0,
+      "close": 8.5
+    },
+    {
+      "index": 39,
+      "start_raw_index": 39,
+      "end_raw_index": 39,
+      "high_raw_index": 39,
+      "low_raw_index": 39,
+      "open": 8.2,
+      "high": 10.0,
+      "low": 6.0,
+      "close": 6.5
+    },
+    {
+      "index": 40,
+      "start_raw_index": 40,
+      "end_raw_index": 40,
+      "high_raw_index": 40,
+      "low_raw_index": 40,
+      "open": 6.3,
+      "high": 8.0,
+      "low": 3.5,
+      "close": 4.0
+    },
+    {
+      "index": 41,
+      "start_raw_index": 41,
+      "end_raw_index": 41,
+      "high_raw_index": 41,
+      "low_raw_index": 41,
+      "open": 3.8,
+      "high": 6.0,
+      "low": 2.5,
+      "close": 3.0
+    },
+    {
+      "index": 42,
+      "start_raw_index": 42,
+      "end_raw_index": 42,
+      "high_raw_index": 42,
+      "low_raw_index": 42,
+      "open": 3.2,
+      "high": 7.0,
+      "low": 3.0,
+      "close": 6.5
+    },
+    {
+      "index": 43,
+      "start_raw_index": 43,
+      "end_raw_index": 43,
+      "high_raw_index": 43,
+      "low_raw_index": 43,
+      "open": 6.3,
+      "high": 9.5,
+      "low": 5.5,
+      "close": 9.0
+    },
+    {
+      "index": 44,
+      "start_raw_index": 44,
+      "end_raw_index": 44,
+      "high_raw_index": 44,
+      "low_raw_index": 44,
+      "open": 8.8,
+      "high": 12.8,
+      "low": 8.5,
+      "close": 12.0
+    },
+    {
+      "index": 45,
+      "start_raw_index": 45,
+      "end_raw_index": 45,
+      "high_raw_index": 45,
+      "low_raw_index": 45,
+      "open": 11.8,
+      "high": 13.2,
+      "low": 11.0,
+      "close": 12.6
+    },
+    {
+      "index": 46,
+      "start_raw_index": 46,
+      "end_raw_index": 46,
+      "high_raw_index": 46,
+      "low_raw_index": 46,
+      "open": 12.3,
+      "high": 12.3,
+      "low": 9.0,
+      "close": 9.5
+    },
+    {
+      "index": 47,
+      "start_raw_index": 47,
+      "end_raw_index": 47,
+      "high_raw_index": 47,
+      "low_raw_index": 47,
+      "open": 9.2,
+      "high": 10.5,
+      "low": 7.0,
+      "close": 7.5
+    },
+    {
+      "index": 48,
+      "start_raw_index": 48,
+      "end_raw_index": 48,
+      "high_raw_index": 48,
+      "low_raw_index": 48,
+      "open": 7.2,
+      "high": 8.5,
+      "low": 5.0,
+      "close": 5.5
+    },
+    {
+      "index": 49,
+      "start_raw_index": 49,
+      "end_raw_index": 49,
+      "high_raw_index": 49,
+      "low_raw_index": 49,
+      "open": 5.3,
+      "high": 7.0,
+      "low": 4.2,
+      "close": 4.8
+    },
+    {
+      "index": 50,
+      "start_raw_index": 50,
+      "end_raw_index": 50,
+      "high_raw_index": 50,
+      "low_raw_index": 50,
+      "open": 4.9,
+      "high": 9.0,
+      "low": 4.9,
+      "close": 8.5
+    },
+    {
+      "index": 51,
+      "start_raw_index": 51,
+      "end_raw_index": 51,
+      "high_raw_index": 51,
+      "low_raw_index": 51,
+      "open": 8.3,
+      "high": 12.0,
+      "low": 7.5,
+      "close": 11.5
+    },
+    {
+      "index": 52,
+      "start_raw_index": 52,
+      "end_raw_index": 52,
+      "high_raw_index": 52,
+      "low_raw_index": 52,
+      "open": 11.3,
+      "high": 14.5,
+      "low": 10.5,
+      "close": 14.0
+    },
+    {
+      "index": 53,
+      "start_raw_index": 53,
+      "end_raw_index": 53,
+      "high_raw_index": 53,
+      "low_raw_index": 53,
+      "open": 13.8,
+      "high": 16.5,
+      "low": 13.0,
+      "close": 16.0
+    },
+    {
+      "index": 54,
+      "start_raw_index": 54,
+      "end_raw_index": 54,
+      "high_raw_index": 54,
+      "low_raw_index": 54,
+      "open": 15.5,
+      "high": 15.8,
+      "low": 12.0,
+      "close": 12.5
+    },
+    {
+      "index": 55,
+      "start_raw_index": 55,
+      "end_raw_index": 55,
+      "high_raw_index": 55,
+      "low_raw_index": 55,
+      "open": 12.2,
+      "high": 13.0,
+      "low": 9.0,
+      "close": 9.5
+    },
+    {
+      "index": 56,
+      "start_raw_index": 56,
+      "end_raw_index": 56,
+      "high_raw_index": 56,
+      "low_raw_index": 56,
+      "open": 9.2,
+      "high": 12.0,
+      "low": 7.0,
+      "close": 7.8
+    },
+    {
+      "index": 57,
+      "start_raw_index": 57,
+      "end_raw_index": 57,
+      "high_raw_index": 57,
+      "low_raw_index": 57,
+      "open": 7.5,
+      "high": 8.0,
+      "low": 4.0,
+      "close": 4.5
+    },
+    {
+      "index": 58,
+      "start_raw_index": 58,
+      "end_raw_index": 58,
+      "high_raw_index": 58,
+      "low_raw_index": 58,
+      "open": 4.8,
+      "high": 10.0,
+      "low": 4.8,
+      "close": 9.5
+    },
+    {
+      "index": 59,
+      "start_raw_index": 59,
+      "end_raw_index": 59,
+      "high_raw_index": 59,
+      "low_raw_index": 59,
+      "open": 9.3,
+      "high": 12.0,
+      "low": 8.0,
+      "close": 11.5
+    },
+    {
+      "index": 60,
+      "start_raw_index": 60,
+      "end_raw_index": 60,
+      "high_raw_index": 60,
+      "low_raw_index": 60,
+      "open": 11.3,
+      "high": 14.0,
+      "low": 10.0,
+      "close": 13.5
+    },
+    {
+      "index": 61,
+      "start_raw_index": 61,
+      "end_raw_index": 61,
+      "high_raw_index": 61,
+      "low_raw_index": 61,
+      "open": 13.2,
+      "high": 15.0,
+      "low": 12.0,
+      "close": 14.5
+    },
+    {
+      "index": 62,
+      "start_raw_index": 62,
+      "end_raw_index": 62,
+      "high_raw_index": 62,
+      "low_raw_index": 62,
+      "open": 14.2,
+      "high": 14.2,
+      "low": 9.0,
+      "close": 9.5
+    },
+    {
+      "index": 63,
+      "start_raw_index": 63,
+      "end_raw_index": 63,
+      "high_raw_index": 63,
+      "low_raw_index": 63,
+      "open": 9.2,
+      "high": 11.0,
+      "low": 6.0,
+      "close": 6.5
+    },
+    {
+      "index": 64,
+      "start_raw_index": 64,
+      "end_raw_index": 64,
+      "high_raw_index": 64,
+      "low_raw_index": 64,
+      "open": 6.3,
+      "high": 9.0,
+      "low": 3.5,
+      "close": 4.0
+    },
+    {
+      "index": 65,
+      "start_raw_index": 65,
+      "end_raw_index": 65,
+      "high_raw_index": 65,
+      "low_raw_index": 65,
+      "open": 3.8,
+      "high": 7.0,
+      "low": 2.0,
+      "close": 2.5
+    },
+    {
+      "index": 66,
+      "start_raw_index": 66,
+      "end_raw_index": 66,
+      "high_raw_index": 66,
+      "low_raw_index": 66,
+      "open": 2.8,
+      "high": 10.0,
+      "low": 2.8,
+      "close": 9.5
+    },
+    {
+      "index": 67,
+      "start_raw_index": 67,
+      "end_raw_index": 68,
+      "high_raw_index": 67,
+      "low_raw_index": 67,
+      "open": 9.3,
+      "high": 12.0,
+      "low": 6.0,
+      "close": 7.5
+    },
+    {
+      "index": 68,
+      "start_raw_index": 69,
+      "end_raw_index": 69,
+      "high_raw_index": 69,
+      "low_raw_index": 69,
+      "open": 7.3,
+      "high": 8.5,
+      "low": 4.5,
+      "close": 5.0
+    },
+    {
+      "index": 69,
+      "start_raw_index": 70,
+      "end_raw_index": 70,
+      "high_raw_index": 70,
+      "low_raw_index": 70,
+      "open": 4.8,
+      "high": 7.0,
+      "low": 3.0,
+      "close": 3.5
+    },
+    {
+      "index": 70,
+      "start_raw_index": 71,
+      "end_raw_index": 71,
+      "high_raw_index": 71,
+      "low_raw_index": 71,
+      "open": 3.3,
+      "high": 8.0,
+      "low": 3.3,
+      "close": 7.5
+    },
+    {
+      "index": 71,
+      "start_raw_index": 72,
+      "end_raw_index": 72,
+      "high_raw_index": 72,
+      "low_raw_index": 72,
+      "open": 7.3,
+      "high": 11.0,
+      "low": 6.5,
+      "close": 10.5
+    },
+    {
+      "index": 72,
+      "start_raw_index": 73,
+      "end_raw_index": 73,
+      "high_raw_index": 73,
+      "low_raw_index": 73,
+      "open": 10.3,
+      "high": 14.0,
+      "low": 9.5,
+      "close": 13.5
+    },
+    {
+      "index": 73,
+      "start_raw_index": 74,
+      "end_raw_index": 75,
+      "high_raw_index": 74,
+      "low_raw_index": 74,
+      "open": 13.3,
+      "high": 17.0,
+      "low": 12.5,
+      "close": 13.5
+    },
+    {
+      "index": 74,
+      "start_raw_index": 76,
+      "end_raw_index": 76,
+      "high_raw_index": 76,
+      "low_raw_index": 76,
+      "open": 13.2,
+      "high": 14.0,
+      "low": 10.0,
+      "close": 10.5
+    },
+    {
+      "index": 75,
+      "start_raw_index": 77,
+      "end_raw_index": 77,
+      "high_raw_index": 77,
+      "low_raw_index": 77,
+      "open": 10.2,
+      "high": 12.0,
+      "low": 8.0,
+      "close": 8.5
+    },
+    {
+      "index": 76,
+      "start_raw_index": 78,
+      "end_raw_index": 78,
+      "high_raw_index": 78,
+      "low_raw_index": 78,
+      "open": 8.2,
+      "high": 9.0,
+      "low": 5.0,
+      "close": 5.5
+    },
+    {
+      "index": 77,
+      "start_raw_index": 79,
+      "end_raw_index": 79,
+      "high_raw_index": 79,
+      "low_raw_index": 79,
+      "open": 5.2,
+      "high": 7.5,
+      "low": 3.5,
+      "close": 4.0
+    },
+    {
+      "index": 78,
+      "start_raw_index": 80,
+      "end_raw_index": 80,
+      "high_raw_index": 80,
+      "low_raw_index": 80,
+      "open": 4.2,
+      "high": 10.0,
+      "low": 4.2,
+      "close": 9.5
+    },
+    {
+      "index": 79,
+      "start_raw_index": 81,
+      "end_raw_index": 81,
+      "high_raw_index": 81,
+      "low_raw_index": 81,
+      "open": 9.3,
+      "high": 13.0,
+      "low": 8.5,
+      "close": 12.5
+    },
+    {
+      "index": 80,
+      "start_raw_index": 82,
+      "end_raw_index": 82,
+      "high_raw_index": 82,
+      "low_raw_index": 82,
+      "open": 12.3,
+      "high": 16.0,
+      "low": 11.5,
+      "close": 15.5
+    },
+    {
+      "index": 81,
+      "start_raw_index": 83,
+      "end_raw_index": 83,
+      "high_raw_index": 83,
+      "low_raw_index": 83,
+      "open": 15.2,
+      "high": 18.5,
+      "low": 14.5,
+      "close": 18.0
+    },
+    {
+      "index": 82,
+      "start_raw_index": 84,
+      "end_raw_index": 84,
+      "high_raw_index": 84,
+      "low_raw_index": 84,
+      "open": 17.5,
+      "high": 17.8,
+      "low": 14.0,
+      "close": 14.5
+    },
+    {
+      "index": 83,
+      "start_raw_index": 85,
+      "end_raw_index": 85,
+      "high_raw_index": 85,
+      "low_raw_index": 85,
+      "open": 14.2,
+      "high": 15.0,
+      "low": 10.0,
+      "close": 10.5
+    },
+    {
+      "index": 84,
+      "start_raw_index": 86,
+      "end_raw_index": 86,
+      "high_raw_index": 86,
+      "low_raw_index": 86,
+      "open": 10.2,
+      "high": 11.0,
+      "low": 6.0,
+      "close": 6.5
+    },
+    {
+      "index": 85,
+      "start_raw_index": 87,
+      "end_raw_index": 87,
+      "high_raw_index": 87,
+      "low_raw_index": 87,
+      "open": 6.2,
+      "high": 8.0,
+      "low": 3.0,
+      "close": 3.5
+    },
+    {
+      "index": 86,
+      "start_raw_index": 88,
+      "end_raw_index": 88,
+      "high_raw_index": 88,
+      "low_raw_index": 88,
+      "open": 3.3,
+      "high": 7.0,
+      "low": 2.0,
+      "close": 2.5
+    },
+    {
+      "index": 87,
+      "start_raw_index": 89,
+      "end_raw_index": 89,
+      "high_raw_index": 89,
+      "low_raw_index": 89,
+      "open": 2.8,
+      "high": 8.0,
+      "low": 2.5,
+      "close": 7.5
+    },
+    {
+      "index": 88,
+      "start_raw_index": 90,
+      "end_raw_index": 90,
+      "high_raw_index": 90,
+      "low_raw_index": 90,
+      "open": 7.2,
+      "high": 11.0,
+      "low": 6.5,
+      "close": 10.5
+    },
+    {
+      "index": 89,
+      "start_raw_index": 91,
+      "end_raw_index": 91,
+      "high_raw_index": 91,
+      "low_raw_index": 91,
+      "open": 10.2,
+      "high": 14.0,
+      "low": 9.5,
+      "close": 13.5
+    },
+    {
+      "index": 90,
+      "start_raw_index": 92,
+      "end_raw_index": 92,
+      "high_raw_index": 92,
+      "low_raw_index": 92,
+      "open": 13.2,
+      "high": 16.0,
+      "low": 12.5,
+      "close": 15.5
+    },
+    {
+      "index": 91,
+      "start_raw_index": 93,
+      "end_raw_index": 93,
+      "high_raw_index": 93,
+      "low_raw_index": 93,
+      "open": 15.2,
+      "high": 15.5,
+      "low": 11.0,
+      "close": 11.5
+    },
+    {
+      "index": 92,
+      "start_raw_index": 94,
+      "end_raw_index": 94,
+      "high_raw_index": 94,
+      "low_raw_index": 94,
+      "open": 11.2,
+      "high": 12.0,
+      "low": 7.0,
+      "close": 7.5
+    },
+    {
+      "index": 93,
+      "start_raw_index": 95,
+      "end_raw_index": 95,
+      "high_raw_index": 95,
+      "low_raw_index": 95,
+      "open": 7.2,
+      "high": 9.0,
+      "low": 3.0,
+      "close": 3.5
+    },
+    {
+      "index": 94,
+      "start_raw_index": 96,
+      "end_raw_index": 96,
+      "high_raw_index": 96,
+      "low_raw_index": 96,
+      "open": 3.2,
+      "high": 6.0,
+      "low": 1.5,
+      "close": 2.0
+    },
+    {
+      "index": 95,
+      "start_raw_index": 97,
+      "end_raw_index": 97,
+      "high_raw_index": 97,
+      "low_raw_index": 97,
+      "open": 2.2,
+      "high": 7.0,
+      "low": 2.0,
+      "close": 6.5
+    },
+    {
+      "index": 96,
+      "start_raw_index": 98,
+      "end_raw_index": 98,
+      "high_raw_index": 98,
+      "low_raw_index": 98,
+      "open": 6.2,
+      "high": 10.0,
+      "low": 5.5,
+      "close": 9.5
+    },
+    {
+      "index": 97,
+      "start_raw_index": 99,
+      "end_raw_index": 99,
+      "high_raw_index": 99,
+      "low_raw_index": 99,
+      "open": 9.2,
+      "high": 13.0,
+      "low": 8.5,
+      "close": 12.5
+    },
+    {
+      "index": 98,
+      "start_raw_index": 100,
+      "end_raw_index": 100,
+      "high_raw_index": 100,
+      "low_raw_index": 100,
+      "open": 12.2,
+      "high": 17.0,
+      "low": 11.5,
+      "close": 16.5
+    },
+    {
+      "index": 99,
+      "start_raw_index": 101,
+      "end_raw_index": 101,
+      "high_raw_index": 101,
+      "low_raw_index": 101,
+      "open": 16.2,
+      "high": 19.0,
+      "low": 15.5,
+      "close": 18.5
+    },
+    {
+      "index": 100,
+      "start_raw_index": 102,
+      "end_raw_index": 102,
+      "high_raw_index": 102,
+      "low_raw_index": 102,
+      "open": 18.2,
+      "high": 18.5,
+      "low": 14.0,
+      "close": 14.5
+    },
+    {
+      "index": 101,
+      "start_raw_index": 103,
+      "end_raw_index": 103,
+      "high_raw_index": 103,
+      "low_raw_index": 103,
+      "open": 14.2,
+      "high": 15.0,
+      "low": 10.0,
+      "close": 10.5
+    },
+    {
+      "index": 102,
+      "start_raw_index": 104,
+      "end_raw_index": 104,
+      "high_raw_index": 104,
+      "low_raw_index": 104,
+      "open": 10.2,
+      "high": 12.0,
+      "low": 6.0,
+      "close": 6.5
+    },
+    {
+      "index": 103,
+      "start_raw_index": 105,
+      "end_raw_index": 105,
+      "high_raw_index": 105,
+      "low_raw_index": 105,
+      "open": 6.2,
+      "high": 8.0,
+      "low": 3.0,
+      "close": 3.5
+    },
+    {
+      "index": 104,
+      "start_raw_index": 106,
+      "end_raw_index": 106,
+      "high_raw_index": 106,
+      "low_raw_index": 106,
+      "open": 3.2,
+      "high": 6.0,
+      "low": 1.0,
+      "close": 1.5
+    },
+    {
+      "index": 105,
+      "start_raw_index": 107,
+      "end_raw_index": 107,
+      "high_raw_index": 107,
+      "low_raw_index": 107,
+      "open": 1.8,
+      "high": 7.0,
+      "low": 1.5,
+      "close": 6.5
+    },
+    {
+      "index": 106,
+      "start_raw_index": 108,
+      "end_raw_index": 108,
+      "high_raw_index": 108,
+      "low_raw_index": 108,
+      "open": 6.2,
+      "high": 11.0,
+      "low": 5.5,
+      "close": 10.5
+    },
+    {
+      "index": 107,
+      "start_raw_index": 109,
+      "end_raw_index": 109,
+      "high_raw_index": 109,
+      "low_raw_index": 109,
+      "open": 10.2,
+      "high": 15.0,
+      "low": 9.5,
+      "close": 14.5
+    },
+    {
+      "index": 108,
+      "start_raw_index": 110,
+      "end_raw_index": 110,
+      "high_raw_index": 110,
+      "low_raw_index": 110,
+      "open": 14.2,
+      "high": 18.0,
+      "low": 13.5,
+      "close": 17.5
+    },
+    {
+      "index": 109,
+      "start_raw_index": 111,
+      "end_raw_index": 111,
+      "high_raw_index": 111,
+      "low_raw_index": 111,
+      "open": 17.2,
+      "high": 20.5,
+      "low": 16.5,
+      "close": 20.0
+    },
+    {
+      "index": 110,
+      "start_raw_index": 112,
+      "end_raw_index": 112,
+      "high_raw_index": 112,
+      "low_raw_index": 112,
+      "open": 19.8,
+      "high": 20.0,
+      "low": 15.0,
+      "close": 15.5
+    },
+    {
+      "index": 111,
+      "start_raw_index": 113,
+      "end_raw_index": 113,
+      "high_raw_index": 113,
+      "low_raw_index": 113,
+      "open": 15.2,
+      "high": 16.0,
+      "low": 11.0,
+      "close": 11.5
+    },
+    {
+      "index": 112,
+      "start_raw_index": 114,
+      "end_raw_index": 114,
+      "high_raw_index": 114,
+      "low_raw_index": 114,
+      "open": 11.2,
+      "high": 13.0,
+      "low": 7.0,
+      "close": 7.5
+    },
+    {
+      "index": 113,
+      "start_raw_index": 115,
+      "end_raw_index": 115,
+      "high_raw_index": 115,
+      "low_raw_index": 115,
+      "open": 7.2,
+      "high": 9.0,
+      "low": 3.0,
+      "close": 3.5
+    },
+    {
+      "index": 114,
+      "start_raw_index": 116,
+      "end_raw_index": 116,
+      "high_raw_index": 116,
+      "low_raw_index": 116,
+      "open": 3.2,
+      "high": 6.0,
+      "low": 0.5,
+      "close": 1.0
+    },
+    {
+      "index": 115,
+      "start_raw_index": 117,
+      "end_raw_index": 117,
+      "high_raw_index": 117,
+      "low_raw_index": 117,
+      "open": 1.2,
+      "high": 7.0,
+      "low": 1.0,
+      "close": 6.5
+    },
+    {
+      "index": 116,
+      "start_raw_index": 118,
+      "end_raw_index": 118,
+      "high_raw_index": 118,
+      "low_raw_index": 118,
+      "open": 6.2,
+      "high": 11.0,
+      "low": 5.5,
+      "close": 10.5
+    },
+    {
+      "index": 117,
+      "start_raw_index": 119,
+      "end_raw_index": 119,
+      "high_raw_index": 119,
+      "low_raw_index": 119,
+      "open": 10.2,
+      "high": 15.0,
+      "low": 9.5,
+      "close": 14.5
+    },
+    {
+      "index": 118,
+      "start_raw_index": 120,
+      "end_raw_index": 120,
+      "high_raw_index": 120,
+      "low_raw_index": 120,
+      "open": 14.2,
+      "high": 19.0,
+      "low": 13.5,
+      "close": 18.5
+    },
+    {
+      "index": 119,
+      "start_raw_index": 121,
+      "end_raw_index": 121,
+      "high_raw_index": 121,
+      "low_raw_index": 121,
+      "open": 18.2,
+      "high": 22.0,
+      "low": 17.5,
+      "close": 21.5
+    },
+    {
+      "index": 120,
+      "start_raw_index": 122,
+      "end_raw_index": 122,
+      "high_raw_index": 122,
+      "low_raw_index": 122,
+      "open": 21.2,
+      "high": 21.5,
+      "low": 16.0,
+      "close": 16.5
+    },
+    {
+      "index": 121,
+      "start_raw_index": 123,
+      "end_raw_index": 123,
+      "high_raw_index": 123,
+      "low_raw_index": 123,
+      "open": 16.2,
+      "high": 17.0,
+      "low": 12.0,
+      "close": 12.5
+    },
+    {
+      "index": 122,
+      "start_raw_index": 124,
+      "end_raw_index": 124,
+      "high_raw_index": 124,
+      "low_raw_index": 124,
+      "open": 12.2,
+      "high": 14.0,
+      "low": 8.0,
+      "close": 8.5
+    },
+    {
+      "index": 123,
+      "start_raw_index": 125,
+      "end_raw_index": 125,
+      "high_raw_index": 125,
+      "low_raw_index": 125,
+      "open": 8.2,
+      "high": 10.0,
+      "low": 4.0,
+      "close": 4.5
+    },
+    {
+      "index": 124,
+      "start_raw_index": 126,
+      "end_raw_index": 127,
+      "high_raw_index": 127,
+      "low_raw_index": 127,
+      "open": 4.2,
+      "high": 8.0,
+      "low": 1.0,
+      "close": 7.5
+    },
+    {
+      "index": 125,
+      "start_raw_index": 128,
+      "end_raw_index": 128,
+      "high_raw_index": 128,
+      "low_raw_index": 128,
+      "open": 7.2,
+      "high": 12.0,
+      "low": 6.5,
+      "close": 11.5
+    },
+    {
+      "index": 126,
+      "start_raw_index": 129,
+      "end_raw_index": 129,
+      "high_raw_index": 129,
+      "low_raw_index": 129,
+      "open": 11.2,
+      "high": 17.0,
+      "low": 10.5,
+      "close": 16.5
+    },
+    {
+      "index": 127,
+      "start_raw_index": 130,
+      "end_raw_index": 130,
+      "high_raw_index": 130,
+      "low_raw_index": 130,
+      "open": 16.2,
+      "high": 21.0,
+      "low": 15.5,
+      "close": 20.5
+    },
+    {
+      "index": 128,
+      "start_raw_index": 131,
+      "end_raw_index": 131,
+      "high_raw_index": 131,
+      "low_raw_index": 131,
+      "open": 20.2,
+      "high": 24.0,
+      "low": 19.5,
+      "close": 23.5
+    },
+    {
+      "index": 129,
+      "start_raw_index": 132,
+      "end_raw_index": 132,
+      "high_raw_index": 132,
+      "low_raw_index": 132,
+      "open": 23.2,
+      "high": 23.5,
+      "low": 18.0,
+      "close": 18.5
+    },
+    {
+      "index": 130,
+      "start_raw_index": 133,
+      "end_raw_index": 133,
+      "high_raw_index": 133,
+      "low_raw_index": 133,
+      "open": 18.2,
+      "high": 19.0,
+      "low": 13.0,
+      "close": 13.5
+    },
+    {
+      "index": 131,
+      "start_raw_index": 134,
+      "end_raw_index": 134,
+      "high_raw_index": 134,
+      "low_raw_index": 134,
+      "open": 13.2,
+      "high": 15.0,
+      "low": 8.0,
+      "close": 8.5
+    },
+    {
+      "index": 132,
+      "start_raw_index": 135,
+      "end_raw_index": 135,
+      "high_raw_index": 135,
+      "low_raw_index": 135,
+      "open": 8.2,
+      "high": 13.0,
+      "low": 7.5,
+      "close": 12.5
+    },
+    {
+      "index": 133,
+      "start_raw_index": 136,
+      "end_raw_index": 136,
+      "high_raw_index": 136,
+      "low_raw_index": 136,
+      "open": 12.2,
+      "high": 18.0,
+      "low": 11.5,
+      "close": 17.5
+    },
+    {
+      "index": 134,
+      "start_raw_index": 137,
+      "end_raw_index": 137,
+      "high_raw_index": 137,
+      "low_raw_index": 137,
+      "open": 17.2,
+      "high": 23.0,
+      "low": 16.5,
+      "close": 22.5
+    },
+    {
+      "index": 135,
+      "start_raw_index": 138,
+      "end_raw_index": 138,
+      "high_raw_index": 138,
+      "low_raw_index": 138,
+      "open": 22.2,
+      "high": 26.0,
+      "low": 21.5,
+      "close": 25.5
+    },
+    {
+      "index": 136,
+      "start_raw_index": 139,
+      "end_raw_index": 139,
+      "high_raw_index": 139,
+      "low_raw_index": 139,
+      "open": 25.2,
+      "high": 25.5,
+      "low": 18.0,
+      "close": 18.5
+    },
+    {
+      "index": 137,
+      "start_raw_index": 140,
+      "end_raw_index": 140,
+      "high_raw_index": 140,
+      "low_raw_index": 140,
+      "open": 18.2,
+      "high": 19.0,
+      "low": 12.0,
+      "close": 12.5
+    },
+    {
+      "index": 138,
+      "start_raw_index": 141,
+      "end_raw_index": 141,
+      "high_raw_index": 141,
+      "low_raw_index": 141,
+      "open": 12.2,
+      "high": 14.0,
+      "low": 6.0,
+      "close": 6.5
+    },
+    {
+      "index": 139,
+      "start_raw_index": 142,
+      "end_raw_index": 142,
+      "high_raw_index": 142,
+      "low_raw_index": 142,
+      "open": 6.2,
+      "high": 13.0,
+      "low": 5.5,
+      "close": 12.5
+    },
+    {
+      "index": 140,
+      "start_raw_index": 143,
+      "end_raw_index": 143,
+      "high_raw_index": 143,
+      "low_raw_index": 143,
+      "open": 12.2,
+      "high": 19.0,
+      "low": 11.5,
+      "close": 18.5
+    },
+    {
+      "index": 141,
+      "start_raw_index": 144,
+      "end_raw_index": 144,
+      "high_raw_index": 144,
+      "low_raw_index": 144,
+      "open": 18.2,
+      "high": 25.0,
+      "low": 17.5,
+      "close": 24.5
+    },
+    {
+      "index": 142,
+      "start_raw_index": 145,
+      "end_raw_index": 145,
+      "high_raw_index": 145,
+      "low_raw_index": 145,
+      "open": 24.2,
+      "high": 28.0,
+      "low": 23.5,
+      "close": 27.5
+    },
+    {
+      "index": 143,
+      "start_raw_index": 146,
+      "end_raw_index": 146,
+      "high_raw_index": 146,
+      "low_raw_index": 146,
+      "open": 27.2,
+      "high": 27.5,
+      "low": 21.0,
+      "close": 21.5
+    },
+    {
+      "index": 144,
+      "start_raw_index": 147,
+      "end_raw_index": 147,
+      "high_raw_index": 147,
+      "low_raw_index": 147,
+      "open": 21.2,
+      "high": 22.0,
+      "low": 15.0,
+      "close": 15.5
+    },
+    {
+      "index": 145,
+      "start_raw_index": 148,
+      "end_raw_index": 148,
+      "high_raw_index": 148,
+      "low_raw_index": 148,
+      "open": 15.2,
+      "high": 17.0,
+      "low": 9.0,
+      "close": 9.5
+    },
+    {
+      "index": 146,
+      "start_raw_index": 149,
+      "end_raw_index": 149,
+      "high_raw_index": 149,
+      "low_raw_index": 149,
+      "open": 9.2,
+      "high": 15.0,
+      "low": 8.5,
+      "close": 14.5
+    },
+    {
+      "index": 147,
+      "start_raw_index": 150,
+      "end_raw_index": 150,
+      "high_raw_index": 150,
+      "low_raw_index": 150,
+      "open": 14.2,
+      "high": 21.0,
+      "low": 13.5,
+      "close": 20.5
+    },
+    {
+      "index": 148,
+      "start_raw_index": 151,
+      "end_raw_index": 151,
+      "high_raw_index": 151,
+      "low_raw_index": 151,
+      "open": 20.2,
+      "high": 27.0,
+      "low": 19.5,
+      "close": 26.5
+    },
+    {
+      "index": 149,
+      "start_raw_index": 152,
+      "end_raw_index": 153,
+      "high_raw_index": 152,
+      "low_raw_index": 152,
+      "open": 26.2,
+      "high": 30.0,
+      "low": 25.5,
+      "close": 28.6
+    },
+    {
+      "index": 150,
+      "start_raw_index": 154,
+      "end_raw_index": 154,
+      "high_raw_index": 154,
+      "low_raw_index": 154,
+      "open": 28.4,
+      "high": 28.8,
+      "low": 26.2,
+      "close": 26.8
+    },
+    {
+      "index": 151,
+      "start_raw_index": 155,
+      "end_raw_index": 155,
+      "high_raw_index": 155,
+      "low_raw_index": 155,
+      "open": 26.6,
+      "high": 27.0,
+      "low": 22.71,
+      "close": 23.01
+    },
+    {
+      "index": 152,
+      "start_raw_index": 156,
+      "end_raw_index": 156,
+      "high_raw_index": 156,
+      "low_raw_index": 156,
+      "open": 22.81,
+      "high": 23.31,
+      "low": 22.01,
+      "close": 22.36
+    },
+    {
+      "index": 153,
+      "start_raw_index": 157,
+      "end_raw_index": 157,
+      "high_raw_index": 157,
+      "low_raw_index": 157,
+      "open": 22.41,
+      "high": 24.51,
+      "low": 22.21,
+      "close": 24.01
+    },
+    {
+      "index": 154,
+      "start_raw_index": 158,
+      "end_raw_index": 158,
+      "high_raw_index": 158,
+      "low_raw_index": 158,
+      "open": 23.81,
+      "high": 26.01,
+      "low": 23.21,
+      "close": 25.51
+    },
+    {
+      "index": 155,
+      "start_raw_index": 159,
+      "end_raw_index": 159,
+      "high_raw_index": 159,
+      "low_raw_index": 159,
+      "open": 25.21,
+      "high": 27.51,
+      "low": 24.51,
+      "close": 27.01
+    },
+    {
+      "index": 156,
+      "start_raw_index": 160,
+      "end_raw_index": 160,
+      "high_raw_index": 160,
+      "low_raw_index": 160,
+      "open": 26.81,
+      "high": 28.51,
+      "low": 26.01,
+      "close": 28.01
+    },
+    {
+      "index": 157,
+      "start_raw_index": 161,
+      "end_raw_index": 161,
+      "high_raw_index": 161,
+      "low_raw_index": 161,
+      "open": 27.81,
+      "high": 28.7,
+      "low": 27.01,
+      "close": 28.2
+    },
+    {
+      "index": 158,
+      "start_raw_index": 162,
+      "end_raw_index": 162,
+      "high_raw_index": 162,
+      "low_raw_index": 162,
+      "open": 28.0,
+      "high": 29.0,
+      "low": 27.51,
+      "close": 28.5
+    },
+    {
+      "index": 159,
+      "start_raw_index": 163,
+      "end_raw_index": 163,
+      "high_raw_index": 163,
+      "low_raw_index": 163,
+      "open": 28.2,
+      "high": 29.5,
+      "low": 27.8,
+      "close": 29.1
+    },
+    {
+      "index": 160,
+      "start_raw_index": 164,
+      "end_raw_index": 164,
+      "high_raw_index": 164,
+      "low_raw_index": 164,
+      "open": 29.0,
+      "high": 30.0,
+      "low": 28.4,
+      "close": 29.5
+    },
+    {
+      "index": 161,
+      "start_raw_index": 165,
+      "end_raw_index": 165,
+      "high_raw_index": 165,
+      "low_raw_index": 165,
+      "open": 29.4,
+      "high": 30.4,
+      "low": 28.8,
+      "close": 29.9
+    },
+    {
+      "index": 162,
+      "start_raw_index": 166,
+      "end_raw_index": 166,
+      "high_raw_index": 166,
+      "low_raw_index": 166,
+      "open": 29.8,
+      "high": 30.8,
+      "low": 29.2,
+      "close": 30.2
+    },
+    {
+      "index": 163,
+      "start_raw_index": 167,
+      "end_raw_index": 167,
+      "high_raw_index": 167,
+      "low_raw_index": 167,
+      "open": 30.0,
+      "high": 30.3,
+      "low": 28.0,
+      "close": 28.6
+    },
+    {
+      "index": 164,
+      "start_raw_index": 168,
+      "end_raw_index": 168,
+      "high_raw_index": 168,
+      "low_raw_index": 168,
+      "open": 28.5,
+      "high": 29.0,
+      "low": 27.0,
+      "close": 27.8
+    },
+    {
+      "index": 165,
+      "start_raw_index": 169,
+      "end_raw_index": 169,
+      "high_raw_index": 169,
+      "low_raw_index": 169,
+      "open": 28.0,
+      "high": 28.6,
+      "low": 26.0,
+      "close": 26.8
+    },
+    {
+      "index": 166,
+      "start_raw_index": 170,
+      "end_raw_index": 170,
+      "high_raw_index": 170,
+      "low_raw_index": 170,
+      "open": 27.0,
+      "high": 28.0,
+      "low": 25.5,
+      "close": 26.2
+    }
+  ],
+  "fx": [
+    {
+      "index": 1,
+      "raw_index": 1,
+      "type": "bottom",
+      "price": 8.0
+    },
+    {
+      "index": 5,
+      "raw_index": 5,
+      "type": "top",
+      "price": 14.0
+    },
+    {
+      "index": 9,
+      "raw_index": 9,
+      "type": "bottom",
+      "price": 6.5
+    },
+    {
+      "index": 13,
+      "raw_index": 13,
+      "type": "top",
+      "price": 15.0
+    },
+    {
+      "index": 17,
+      "raw_index": 17,
+      "type": "bottom",
+      "price": 5.8
+    },
+    {
+      "index": 21,
+      "raw_index": 21,
+      "type": "top",
+      "price": 14.2
+    },
+    {
+      "index": 25,
+      "raw_index": 25,
+      "type": "bottom",
+      "price": 4.0
+    },
+    {
+      "index": 29,
+      "raw_index": 29,
+      "type": "top",
+      "price": 13.5
+    },
+    {
+      "index": 33,
+      "raw_index": 33,
+      "type": "bottom",
+      "price": 3.0
+    },
+    {
+      "index": 37,
+      "raw_index": 37,
+      "type": "top",
+      "price": 12.5
+    },
+    {
+      "index": 41,
+      "raw_index": 41,
+      "type": "bottom",
+      "price": 2.5
+    },
+    {
+      "index": 45,
+      "raw_index": 45,
+      "type": "top",
+      "price": 13.2
+    },
+    {
+      "index": 49,
+      "raw_index": 49,
+      "type": "bottom",
+      "price": 4.2
+    },
+    {
+      "index": 53,
+      "raw_index": 53,
+      "type": "top",
+      "price": 16.5
+    },
+    {
+      "index": 57,
+      "raw_index": 57,
+      "type": "bottom",
+      "price": 4.0
+    },
+    {
+      "index": 61,
+      "raw_index": 61,
+      "type": "top",
+      "price": 15.0
+    },
+    {
+      "index": 65,
+      "raw_index": 65,
+      "type": "bottom",
+      "price": 2.0
+    },
+    {
+      "index": 67,
+      "raw_index": 67,
+      "type": "top",
+      "price": 12.0
+    },
+    {
+      "index": 69,
+      "raw_index": 70,
+      "type": "bottom",
+      "price": 3.0
+    },
+    {
+      "index": 73,
+      "raw_index": 74,
+      "type": "top",
+      "price": 17.0
+    },
+    {
+      "index": 77,
+      "raw_index": 79,
+      "type": "bottom",
+      "price": 3.5
+    },
+    {
+      "index": 81,
+      "raw_index": 83,
+      "type": "top",
+      "price": 18.5
+    },
+    {
+      "index": 86,
+      "raw_index": 88,
+      "type": "bottom",
+      "price": 2.0
+    },
+    {
+      "index": 90,
+      "raw_index": 92,
+      "type": "top",
+      "price": 16.0
+    },
+    {
+      "index": 94,
+      "raw_index": 96,
+      "type": "bottom",
+      "price": 1.5
+    },
+    {
+      "index": 99,
+      "raw_index": 101,
+      "type": "top",
+      "price": 19.0
+    },
+    {
+      "index": 104,
+      "raw_index": 106,
+      "type": "bottom",
+      "price": 1.0
+    },
+    {
+      "index": 109,
+      "raw_index": 111,
+      "type": "top",
+      "price": 20.5
+    },
+    {
+      "index": 114,
+      "raw_index": 116,
+      "type": "bottom",
+      "price": 0.5
+    },
+    {
+      "index": 119,
+      "raw_index": 121,
+      "type": "top",
+      "price": 22.0
+    },
+    {
+      "index": 124,
+      "raw_index": 127,
+      "type": "bottom",
+      "price": 1.0
+    },
+    {
+      "index": 128,
+      "raw_index": 131,
+      "type": "top",
+      "price": 24.0
+    },
+    {
+      "index": 132,
+      "raw_index": 135,
+      "type": "bottom",
+      "price": 7.5
+    },
+    {
+      "index": 135,
+      "raw_index": 138,
+      "type": "top",
+      "price": 26.0
+    },
+    {
+      "index": 139,
+      "raw_index": 142,
+      "type": "bottom",
+      "price": 5.5
+    },
+    {
+      "index": 142,
+      "raw_index": 145,
+      "type": "top",
+      "price": 28.0
+    },
+    {
+      "index": 146,
+      "raw_index": 149,
+      "type": "bottom",
+      "price": 8.5
+    },
+    {
+      "index": 149,
+      "raw_index": 152,
+      "type": "top",
+      "price": 30.0
+    },
+    {
+      "index": 152,
+      "raw_index": 156,
+      "type": "bottom",
+      "price": 22.01
+    },
+    {
+      "index": 162,
+      "raw_index": 166,
+      "type": "top",
+      "price": 30.8
+    }
+  ],
+  "bi": [
+    {
+      "index": 0,
+      "start_raw_index": 1,
+      "end_raw_index": 5,
+      "start_price": 8.0,
+      "end_price": 14.0,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 1,
+      "start_raw_index": 5,
+      "end_raw_index": 9,
+      "start_price": 14.0,
+      "end_price": 6.5,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 2,
+      "start_raw_index": 9,
+      "end_raw_index": 13,
+      "start_price": 6.5,
+      "end_price": 15.0,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 3,
+      "start_raw_index": 13,
+      "end_raw_index": 17,
+      "start_price": 15.0,
+      "end_price": 5.8,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 4,
+      "start_raw_index": 17,
+      "end_raw_index": 21,
+      "start_price": 5.8,
+      "end_price": 14.2,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 5,
+      "start_raw_index": 21,
+      "end_raw_index": 25,
+      "start_price": 14.2,
+      "end_price": 4.0,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 6,
+      "start_raw_index": 25,
+      "end_raw_index": 29,
+      "start_price": 4.0,
+      "end_price": 13.5,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 7,
+      "start_raw_index": 29,
+      "end_raw_index": 33,
+      "start_price": 13.5,
+      "end_price": 3.0,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 8,
+      "start_raw_index": 33,
+      "end_raw_index": 37,
+      "start_price": 3.0,
+      "end_price": 12.5,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 9,
+      "start_raw_index": 37,
+      "end_raw_index": 41,
+      "start_price": 12.5,
+      "end_price": 2.5,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 10,
+      "start_raw_index": 41,
+      "end_raw_index": 45,
+      "start_price": 2.5,
+      "end_price": 13.2,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 11,
+      "start_raw_index": 45,
+      "end_raw_index": 49,
+      "start_price": 13.2,
+      "end_price": 4.2,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 12,
+      "start_raw_index": 49,
+      "end_raw_index": 53,
+      "start_price": 4.2,
+      "end_price": 16.5,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 13,
+      "start_raw_index": 53,
+      "end_raw_index": 57,
+      "start_price": 16.5,
+      "end_price": 4.0,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 14,
+      "start_raw_index": 57,
+      "end_raw_index": 61,
+      "start_price": 4.0,
+      "end_price": 15.0,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 15,
+      "start_raw_index": 61,
+      "end_raw_index": 65,
+      "start_price": 15.0,
+      "end_price": 2.0,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 16,
+      "start_raw_index": 65,
+      "end_raw_index": 74,
+      "start_price": 2.0,
+      "end_price": 17.0,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 17,
+      "start_raw_index": 74,
+      "end_raw_index": 79,
+      "start_price": 17.0,
+      "end_price": 3.5,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 18,
+      "start_raw_index": 79,
+      "end_raw_index": 83,
+      "start_price": 3.5,
+      "end_price": 18.5,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 19,
+      "start_raw_index": 83,
+      "end_raw_index": 88,
+      "start_price": 18.5,
+      "end_price": 2.0,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 20,
+      "start_raw_index": 88,
+      "end_raw_index": 92,
+      "start_price": 2.0,
+      "end_price": 16.0,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 21,
+      "start_raw_index": 92,
+      "end_raw_index": 96,
+      "start_price": 16.0,
+      "end_price": 1.5,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 22,
+      "start_raw_index": 96,
+      "end_raw_index": 101,
+      "start_price": 1.5,
+      "end_price": 19.0,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 23,
+      "start_raw_index": 101,
+      "end_raw_index": 106,
+      "start_price": 19.0,
+      "end_price": 1.0,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 24,
+      "start_raw_index": 106,
+      "end_raw_index": 111,
+      "start_price": 1.0,
+      "end_price": 20.5,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 25,
+      "start_raw_index": 111,
+      "end_raw_index": 116,
+      "start_price": 20.5,
+      "end_price": 0.5,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 26,
+      "start_raw_index": 116,
+      "end_raw_index": 121,
+      "start_price": 0.5,
+      "end_price": 22.0,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 27,
+      "start_raw_index": 121,
+      "end_raw_index": 127,
+      "start_price": 22.0,
+      "end_price": 1.0,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 28,
+      "start_raw_index": 127,
+      "end_raw_index": 131,
+      "start_price": 1.0,
+      "end_price": 24.0,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 29,
+      "start_raw_index": 131,
+      "end_raw_index": 142,
+      "start_price": 24.0,
+      "end_price": 5.5,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 30,
+      "start_raw_index": 142,
+      "end_raw_index": 166,
+      "start_price": 5.5,
+      "end_price": 30.8,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 31,
+      "start_raw_index": 166,
+      "end_raw_index": 170,
+      "start_price": 30.8,
+      "end_price": 25.5,
+      "direction": "down",
+      "is_sure": false
+    }
+  ],
+  "seg": [
+    {
+      "index": 0,
+      "start_bi_index": 0,
+      "end_bi_index": 2,
+      "start_raw_index": 1,
+      "end_raw_index": 13,
+      "start_price": 8.0,
+      "end_price": 15.0,
+      "direction": "up",
+      "is_sure": false
+    },
+    {
+      "index": 1,
+      "start_bi_index": 3,
+      "end_bi_index": 9,
+      "start_raw_index": 13,
+      "end_raw_index": 41,
+      "start_price": 15.0,
+      "end_price": 2.5,
+      "direction": "down",
+      "is_sure": false
+    },
+    {
+      "index": 2,
+      "start_bi_index": 10,
+      "end_bi_index": 12,
+      "start_raw_index": 41,
+      "end_raw_index": 53,
+      "start_price": 2.5,
+      "end_price": 16.5,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 3,
+      "start_bi_index": 13,
+      "end_bi_index": 15,
+      "start_raw_index": 53,
+      "end_raw_index": 65,
+      "start_price": 16.5,
+      "end_price": 2.0,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 4,
+      "start_bi_index": 16,
+      "end_bi_index": 18,
+      "start_raw_index": 65,
+      "end_raw_index": 83,
+      "start_price": 2.0,
+      "end_price": 18.5,
+      "direction": "up",
+      "is_sure": true
+    },
+    {
+      "index": 5,
+      "start_bi_index": 19,
+      "end_bi_index": 25,
+      "start_raw_index": 83,
+      "end_raw_index": 116,
+      "start_price": 18.5,
+      "end_price": 0.5,
+      "direction": "down",
+      "is_sure": true
+    },
+    {
+      "index": 6,
+      "start_bi_index": 26,
+      "end_bi_index": 30,
+      "start_raw_index": 116,
+      "end_raw_index": 166,
+      "start_price": 0.5,
+      "end_price": 30.8,
+      "direction": "up",
+      "is_sure": false
+    },
+    {
+      "index": 7,
+      "start_bi_index": 31,
+      "end_bi_index": 31,
+      "start_raw_index": 166,
+      "end_raw_index": 170,
+      "start_price": 30.8,
+      "end_price": 25.5,
+      "direction": "down",
+      "is_sure": false
+    }
+  ],
+  "segseg": [],
+  "zs": [
+    {
+      "index": 0,
+      "start_bi_index": 4,
+      "end_bi_index": 8,
+      "start_raw_index": 17,
+      "end_raw_index": 37,
+      "zg": 13.5,
+      "zd": 5.8,
+      "gg": 14.2,
+      "dd": 3.0,
+      "confirmed": null
+    },
+    {
+      "index": 1,
+      "start_bi_index": 20,
+      "end_bi_index": 24,
+      "start_raw_index": 88,
+      "end_raw_index": 111,
+      "zg": 16.0,
+      "zd": 2.0,
+      "gg": 20.5,
+      "dd": 1.0,
+      "confirmed": null
+    },
+    {
+      "index": 2,
+      "start_bi_index": 27,
+      "end_bi_index": 29,
+      "start_raw_index": 121,
+      "end_raw_index": 142,
+      "zg": 22.0,
+      "zd": 5.5,
+      "gg": 24.0,
+      "dd": 1.0,
+      "confirmed": null
+    }
+  ],
+  "seg_zs": [
+    {
+      "index": 0,
+      "start_bi_index": null,
+      "end_bi_index": null,
+      "start_raw_index": 13,
+      "end_raw_index": 116,
+      "zg": 15.0,
+      "zd": 2.5,
+      "gg": 18.5,
+      "dd": 0.5,
+      "confirmed": null
+    }
+  ],
+  "bsp": [
+    {
+      "index": 0,
+      "raw_index": 41,
+      "time": "2027/03/23",
+      "price": 2.5,
+      "type": "B1",
+      "level": "bi",
+      "bi_index": 9,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 1,
+      "raw_index": 116,
+      "time": "2027/06/06",
+      "price": 0.5,
+      "type": "B1",
+      "level": "bi",
+      "bi_index": 25,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 2,
+      "raw_index": 166,
+      "time": "2027/07/26",
+      "price": 30.8,
+      "type": "S1",
+      "level": "bi",
+      "bi_index": 30,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 4,
+      "raw_index": 166,
+      "time": "2027/07/26",
+      "price": 30.8,
+      "type": "S1",
+      "level": "seg",
+      "bi_index": null,
+      "seg_index": 6,
+      "zs_index": null,
+      "confirmed": true
+    },
+    {
+      "index": 3,
+      "raw_index": 170,
+      "time": "2027/07/30",
+      "price": 25.5,
+      "type": "B3a",
+      "level": "bi",
+      "bi_index": 31,
+      "seg_index": null,
+      "zs_index": null,
+      "confirmed": true
+    }
+  ]
+}

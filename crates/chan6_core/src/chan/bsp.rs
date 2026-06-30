@@ -14,7 +14,7 @@
 //!
 //! Known gaps for later stages:
 //! - T1P / 1p structural fallback is implemented for committed fixtures.
-//! - T3B / 3b is implemented for structural `treat_bsp3_before` parity; T3A / 3a remains a known gap.
+//! - T3A / 3a and T3B / 3b are implemented for structural BSP3 parity covered by committed fixtures.
 //! - ChanConfig BSP options for enabled/types/follow_1/follow_2 are wired.
 //! - Rate thresholds are wired for B2 and B2s.
 //! - Exact chan.py MACD metric parity for T1P divergence is still a known gap.
@@ -122,6 +122,19 @@ fn build_bsp_core(
             continue;
         }
 
+        if let Some(point) = maybe_t3a_bsp(
+            seg,
+            segments.get(seg_pos + 1),
+            segments,
+            bis,
+            &bi_seg,
+            zs,
+            config,
+            has_bsp1,
+        ) {
+            bi_rows.push(point);
+        }
+
         if let Some(point) = maybe_t3b_bsp(
             seg,
             segments.get(seg_pos + 1),
@@ -219,6 +232,103 @@ fn build_bsp_core(
     });
 
     rows
+}
+
+fn maybe_t3a_bsp(
+    seg: &ChanSegment,
+    next_seg: Option<&ChanSegment>,
+    segments: &[ChanSegment],
+    bis: &[ChanBi],
+    bi_seg: &[Option<usize>],
+    zs: &[ChanZs],
+    config: &ChanBspConfig,
+    has_bsp1: bool,
+) -> Option<ChanBsp> {
+    if !config.is_type_enabled(ChanBspType::T3a) {
+        return None;
+    }
+    if config.bsp3_follow_1 && !has_bsp1 {
+        return None;
+    }
+
+    let bsp1_i = seg.end_parent_index?;
+    let next_seg = next_seg?;
+    let next_seg_idx = next_seg.index;
+
+    let mut next_zs: Vec<&ChanZs> = zs
+        .iter()
+        .filter(|z| z.parent_segment_index == Some(next_seg_idx))
+        .collect();
+    next_zs.sort_by_key(|z| z.index);
+
+    let first_zs = next_zs.first().copied()?;
+    if config.strict_bsp3 && first_zs.start_bi_index != bsp1_i.saturating_add(2) {
+        return None;
+    }
+
+    for (zs_idx, z) in next_zs.into_iter().enumerate() {
+        if zs_idx >= config.bsp3a_max_zs_cnt {
+            break;
+        }
+
+        // chan.py uses zs.bi_out.idx + 1. In normalized Rust ZS, end_bi_index
+        // is the last in-ZS BI, while chan.py bi_out is the following BI.
+        let cand_i = z.end_bi_index.saturating_add(2);
+        if cand_i >= bis.len() {
+            break;
+        }
+
+        let cand = &bis[cand_i];
+        let cand_seg_idx = bi_seg.get(cand_i).copied().flatten();
+
+        match cand_seg_idx {
+            None => {
+                if next_seg_idx != segments.len().saturating_sub(1) {
+                    break;
+                }
+            }
+            Some(seg_idx) if seg_idx != next_seg_idx => {
+                let parent_len = segments
+                    .get(seg_idx)
+                    .and_then(|segment| {
+                        Some(segment.end_parent_index? - segment.start_parent_index? + 1)
+                    })
+                    .unwrap_or(usize::MAX);
+                if parent_len >= 3 {
+                    break;
+                }
+            }
+            _ => {}
+        }
+
+        if cand.direction == next_seg.direction {
+            break;
+        }
+
+        if cand_seg_idx != Some(next_seg_idx) && next_seg_idx < segments.len().saturating_sub(2) {
+            break;
+        }
+
+        if bsp3_back2zs(cand, z) {
+            continue;
+        }
+
+        if config.bsp3_peak && !bsp3_break_zspeak(cand, z) {
+            continue;
+        }
+
+        return Some(bi_bsp(cand, "3a"));
+    }
+
+    None
+}
+
+fn bsp3_break_zspeak(bi: &ChanBi, zs: &ChanZs) -> bool {
+    match bi.direction {
+        ChanDirection::Down => bi_high(bi) >= zs.gg,
+        ChanDirection::Up => bi_low(bi) <= zs.dd,
+        ChanDirection::Unknown => false,
+    }
 }
 
 fn maybe_t3b_bsp(
