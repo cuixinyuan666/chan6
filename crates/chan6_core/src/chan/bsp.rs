@@ -14,7 +14,7 @@
 //!
 //! Known gaps for later stages:
 //! - T1P / 1p structural fallback is implemented for committed fixtures.
-//! - T3A / 3a and T3B / 3b are not implemented.
+//! - T3B / 3b is implemented for structural `treat_bsp3_before` parity; T3A / 3a remains a known gap.
 //! - ChanConfig BSP options for enabled/types/follow_1/follow_2 are wired.
 //! - Rate thresholds are wired for B2 and B2s.
 //! - Exact chan.py MACD metric parity for T1P divergence is still a known gap.
@@ -90,7 +90,7 @@ fn build_bsp_core(
     let mut bi_rows = Vec::new();
     let bi_seg = bi_segment_map(bis.len(), segments);
 
-    for seg in segments {
+    for (seg_pos, seg) in segments.iter().enumerate() {
         let Some(end_i) = seg.end_parent_index else {
             continue;
         };
@@ -120,6 +120,19 @@ fn build_bsp_core(
             bi_rows.push(bi_bsp(bi, "1"));
         } else if config.bsp2_follow_1 {
             continue;
+        }
+
+        if let Some(point) = maybe_t3b_bsp(
+            seg,
+            segments.get(seg_pos + 1),
+            segments.len(),
+            bis,
+            &bi_seg,
+            z,
+            config,
+            has_bsp1,
+        ) {
+            bi_rows.push(point);
         }
 
         if end_i + 2 >= bis.len() {
@@ -206,6 +219,71 @@ fn build_bsp_core(
     });
 
     rows
+}
+
+fn maybe_t3b_bsp(
+    seg: &ChanSegment,
+    next_seg: Option<&ChanSegment>,
+    segments_len: usize,
+    bis: &[ChanBi],
+    bi_seg: &[Option<usize>],
+    cmp_zs: &ChanZs,
+    config: &ChanBspConfig,
+    has_bsp1: bool,
+) -> Option<ChanBsp> {
+    if !config.is_type_enabled(ChanBspType::T3b) {
+        return None;
+    }
+    if config.bsp3_follow_1 && !has_bsp1 {
+        return None;
+    }
+
+    let bsp1_i = seg.end_parent_index?;
+    if bsp1_i >= bis.len() {
+        return None;
+    }
+
+    // chan.py strict mode checks cmp_zs.bi_out == bsp1_bi.
+    // Rust ChanZs stores the last in-ZS BI as end_bi_index, so bi_out maps to end_bi_index + 1.
+    if config.strict_bsp3 && cmp_zs.end_bi_index.saturating_add(1) != bsp1_i {
+        return None;
+    }
+
+    let next_seg = next_seg?;
+    let next_seg_idx = next_seg.index;
+    let end_bi_idx = next_seg.end_parent_index?;
+
+    let mut cand_i = bsp1_i.saturating_add(2);
+    while cand_i < bis.len() {
+        if cand_i > end_bi_idx {
+            break;
+        }
+
+        let cand_seg_idx = bi_seg.get(cand_i).copied().flatten();
+        if let Some(seg_idx) = cand_seg_idx {
+            if seg_idx != next_seg_idx && seg_idx < segments_len.saturating_sub(1) {
+                break;
+            }
+        }
+
+        let cand = &bis[cand_i];
+        if bsp3_back2zs(cand, cmp_zs) {
+            cand_i = cand_i.saturating_add(2);
+            continue;
+        }
+
+        return Some(bi_bsp(cand, "3b"));
+    }
+
+    None
+}
+
+fn bsp3_back2zs(bi: &ChanBi, zs: &ChanZs) -> bool {
+    match bi.direction {
+        ChanDirection::Down => bi_low(bi) < zs.zg,
+        ChanDirection::Up => bi_high(bi) > zs.zd,
+        ChanDirection::Unknown => false,
+    }
 }
 
 fn maybe_t1p_bsp(

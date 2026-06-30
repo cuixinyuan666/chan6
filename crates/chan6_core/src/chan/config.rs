@@ -38,6 +38,10 @@ pub struct ChanBspConfig {
     pub max_bsp2_rate: f64,
     pub max_bsp2s_rate: f64,
     pub min_zs_cnt_for_t1p: usize,
+    pub bsp3_follow_1: bool,
+    pub bsp3_peak: bool,
+    pub strict_bsp3: bool,
+    pub bsp3a_max_zs_cnt: usize,
 }
 
 impl ChanBspConfig {
@@ -63,6 +67,10 @@ impl Default for ChanBspConfig {
             max_bsp2_rate: 0.9999,
             max_bsp2s_rate: 0.9999,
             min_zs_cnt_for_t1p: 1,
+            bsp3_follow_1: true,
+            bsp3_peak: false,
+            strict_bsp3: false,
+            bsp3a_max_zs_cnt: 1,
         }
     }
 }
