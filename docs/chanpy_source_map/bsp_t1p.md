@@ -7,7 +7,7 @@ Current Rust status:
 - B2/S2 implemented.
 - B2s/S2s implemented.
 - BSP config supports enabled, types, follow options, and rate thresholds.
-- T1P / 1p is not implemented yet.
+- T1P / 1p structural fallback is implemented for committed chan.py gold fixtures.
 
 Source files:
 - python/chan.py/BuySellPoint/BSPointList.py
@@ -43,6 +43,6 @@ T1P divergence rule:
 
 Important add_bs behavior: T1 and T1P are added to bsp1_list even when not final target output.
 
-Implementation plan: first generate a chan.py gold fixture with divergence_rate = inf, then implement structural T1P parity in Rust, and keep MACD metric parity documented as a known gap.
+Current parity note: structural T1P fallback is implemented against committed chan.py gold fixtures. Exact MACD metric parity remains documented as a known gap.
 
 Known gap: exact BI MACD metric parity is not available in Rust yet.

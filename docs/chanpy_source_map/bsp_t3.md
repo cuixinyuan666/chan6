@@ -7,7 +7,7 @@ Current Rust status:
 - B1p/S1p implemented for committed structural fallback fixtures.
 - B2/S2 implemented.
 - B2s/S2s implemented.
-- T3A / 3a and T3B / 3b are not implemented yet.
+- T3A / 3a and T3B / 3b are implemented for structural BSP3 parity covered by committed fixtures.
 
 Source files:
 - python/chan.py/BuySellPoint/BSPointList.py

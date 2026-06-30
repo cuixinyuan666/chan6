@@ -12,7 +12,7 @@
 //! Therefore this module assigns bi-level indices before the final display sort, then appends
 //! segment-level BSPs, and finally sorts rows without renumbering.
 //!
-//! Known gaps for later stages:
+//! Current parity scope and remaining limits:
 //! - T1P / 1p structural fallback is implemented for committed fixtures.
 //! - T3A / 3a and T3B / 3b are implemented for structural BSP3 parity covered by committed fixtures.
 //! - ChanConfig BSP options for enabled/types/follow_1/follow_2 are wired.
