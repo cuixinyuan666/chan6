@@ -39,6 +39,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--freq", default="DAILY")
     parser.add_argument("--adjust", default="QFQ")
     parser.add_argument("--mode", choices=["once", "step"], default="once")
+    parser.add_argument("--config-json", default="", help="JSON object merged into analyze_bars config.")
     return parser.parse_args()
 
 
@@ -215,6 +216,14 @@ def main() -> int:
     out_path = Path(args.out)
     bars = read_bars(input_path)
     analyze_bars = import_hichan_engine(hichan_repo)
+
+    runtime_config: dict[str, Any] = {}
+    if args.config_json:
+        loaded_config = json.loads(args.config_json)
+        if not isinstance(loaded_config, dict):
+            raise SystemExit("--config-json must be a JSON object")
+        runtime_config.update(loaded_config)
+
     result = analyze_bars(
         bars=bars,
         symbol=args.symbol,
@@ -222,7 +231,7 @@ def main() -> int:
         freq=args.freq,
         adjust=args.adjust,
         mode=args.mode,
-        config={},
+        config=runtime_config,
     )
     gold = normalize_gold(result)
     out_path.parent.mkdir(parents=True, exist_ok=True)

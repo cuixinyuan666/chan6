@@ -37,6 +37,7 @@ pub struct ChanBspConfig {
     pub bsp2s_follow_2: bool,
     pub max_bsp2_rate: f64,
     pub max_bsp2s_rate: f64,
+    pub min_zs_cnt_for_t1p: usize,
 }
 
 impl ChanBspConfig {
@@ -61,6 +62,7 @@ impl Default for ChanBspConfig {
             bsp2s_follow_2: true,
             max_bsp2_rate: 0.9999,
             max_bsp2s_rate: 0.9999,
+            min_zs_cnt_for_t1p: 1,
         }
     }
 }
@@ -141,6 +143,7 @@ mod tests {
         assert!(config.bsp.bsp2s_follow_2);
         assert_eq!(config.bsp.max_bsp2_rate, 0.9999);
         assert_eq!(config.bsp.max_bsp2s_rate, 0.9999);
+        assert_eq!(config.bsp.min_zs_cnt_for_t1p, 1);
     }
 
     #[test]

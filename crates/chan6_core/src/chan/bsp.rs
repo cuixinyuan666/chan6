@@ -2,6 +2,7 @@
 //!
 //! Current scope:
 //! - bi-level B1 / S1 from segment end breaking its last inner ZS.
+//! - bi-level B1p / S1p from the chan.py treat_pz_bsp1 fallback path.
 //! - bi-level B2 from the pullback after a stored B1 / S1.
 //! - bi-level B2s from later same-side pullbacks while staying in the allowed segment context.
 //! - segment-level B1 / S1 from segment end breaking segment-level ZS.
@@ -12,10 +13,11 @@
 //! segment-level BSPs, and finally sorts rows without renumbering.
 //!
 //! Known gaps for later stages:
-//! - T1P / 1p is not implemented.
+//! - T1P / 1p structural fallback is implemented for committed fixtures.
 //! - T3A / 3a and T3B / 3b are not implemented.
 //! - ChanConfig BSP options for enabled/types/follow_1/follow_2 are wired.
 //! - Rate thresholds are wired for B2 and B2s.
+//! - Exact chan.py MACD metric parity for T1P divergence is still a known gap.
 //! - Divergence and peak filters are represented only by the behavior covered by current
 //!   stage1 gold fixtures.
 
@@ -96,11 +98,19 @@ fn build_bsp_core(
             continue;
         }
 
+        let seg_zs_count = zs
+            .iter()
+            .filter(|z| z.parent_segment_index == Some(seg.index))
+            .count();
+
         let Some(z) = zs
             .iter()
             .filter(|z| z.parent_segment_index == Some(seg.index))
             .max_by_key(|z| z.index)
         else {
+            if let Some(point) = maybe_t1p_bsp(seg, bis, &bi_seg, config, seg_zs_count) {
+                bi_rows.push(point);
+            }
             continue;
         };
 
@@ -198,6 +208,55 @@ fn build_bsp_core(
     rows
 }
 
+fn maybe_t1p_bsp(
+    seg: &ChanSegment,
+    bis: &[ChanBi],
+    bi_seg: &[Option<usize>],
+    config: &ChanBspConfig,
+    seg_zs_count: usize,
+) -> Option<ChanBsp> {
+    if !config.is_type_enabled(ChanBspType::T1p) {
+        return None;
+    }
+    if seg_zs_count < config.min_zs_cnt_for_t1p {
+        return None;
+    }
+
+    let end_i = seg.end_parent_index?;
+    if end_i >= bis.len() || end_i < 2 {
+        return None;
+    }
+
+    let last_bi = &bis[end_i];
+    let pre_bi = &bis[end_i - 2];
+
+    if last_bi.direction != seg.direction {
+        return None;
+    }
+
+    let last_seg = bi_seg.get(last_bi.index).copied().flatten();
+    let pre_seg = bi_seg.get(pre_bi.index).copied().flatten();
+    if last_seg != Some(seg.index) || pre_seg != Some(seg.index) {
+        return None;
+    }
+
+    match last_bi.direction {
+        ChanDirection::Down => {
+            if bi_low(last_bi) > bi_low(pre_bi) {
+                return None;
+            }
+        }
+        ChanDirection::Up => {
+            if bi_high(last_bi) < bi_high(pre_bi) {
+                return None;
+            }
+        }
+        ChanDirection::Unknown => return None,
+    }
+
+    Some(bi_bsp(last_bi, "1p"))
+}
+
 fn push_seg_bsp(rows: &mut Vec<ChanBsp>, seg: &ChanSegment, t: &str) {
     let mut point = seg_bsp(seg, t);
     point.index = rows.len();
@@ -260,10 +319,15 @@ fn breaks(direction: ChanDirection, price: f64, zd: f64, zg: f64) -> bool {
 }
 
 fn range(bi: &ChanBi) -> (f64, f64) {
-    (
-        bi.start_price.min(bi.end_price),
-        bi.start_price.max(bi.end_price),
-    )
+    (bi_low(bi), bi_high(bi))
+}
+
+fn bi_low(bi: &ChanBi) -> f64 {
+    bi.start_price.min(bi.end_price)
+}
+
+fn bi_high(bi: &ChanBi) -> f64 {
+    bi.start_price.max(bi.end_price)
 }
 
 fn overlap(a: (f64, f64), b: (f64, f64)) -> bool {
