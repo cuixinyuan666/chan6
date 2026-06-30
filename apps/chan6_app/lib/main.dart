@@ -143,8 +143,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
       _windowOffset = safeOffset;
       _windowLimit = safeLimit;
       _source = 'chan6_cli/query_chan_basic';
-      _message =
-          '$reason：正在加载窗口 offset=$_windowOffset, limit=$_windowLimit';
+      _message = '$reason：正在加载窗口 offset=$_windowOffset, limit=$_windowLimit';
     });
 
     try {
@@ -181,7 +180,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
         _loadedChipBarId = state.meta.chipBarId;
         _source = 'chan6_cli/query_chan_basic';
         _message =
-            '$reason：Rust 缠论已加载，K=${state.kline.length}, 合并K=${state.mergedBoxes.length}, 分型=${state.fxLines.length}, 笔=${state.biLines.length}, chip=${state.chip.length}';
+            '$reason：Rust 缠论已加载，K=${state.kline.length}, 合并K=${state.mergedBoxes.length}, 分型=${state.fxLines.length}, 笔=${state.biLines.length}, 段=${state.segmentLines.length}, chip=${state.chip.length}';
       });
     } catch (error) {
       if (!mounted || seq != _windowSeq) {
@@ -206,11 +205,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
     _windowDebounce?.cancel();
     _windowDebounce = Timer(
       const Duration(milliseconds: 180),
-      () => _loadKlineWindow(
-        offset: offset,
-        limit: limit,
-        reason: reason,
-      ),
+      () => _loadKlineWindow(offset: offset, limit: limit, reason: reason),
     );
   }
 
@@ -289,10 +284,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
     );
   }
 
-  Future<void> _loadChipAt(
-    CliChartQueryRepository cli,
-    KLinePoint bar,
-  ) async {
+  Future<void> _loadChipAt(CliChartQueryRepository cli, KLinePoint bar) async {
     final seq = ++_requestSeq;
 
     setState(() {
@@ -344,11 +336,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
     final state = _state;
 
     if (state == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -356,8 +344,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
         children: [
           ChartShell(
             initialState: state,
-            onHoverBarChanged:
-                _drawLineMode ? null : _handleHoverBarChanged,
+            onHoverBarChanged: _drawLineMode ? null : _handleHoverBarChanged,
             onPanWindow: _handlePanWindow,
             onZoomWindow: _handleZoomWindow,
             drawLineMode: _drawLineMode,
@@ -365,10 +352,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
           Positioned(
             left: 12,
             top: 12,
-            child: _ChanBasicPanel(
-              state: state,
-              source: _source,
-            ),
+            child: _ChanBasicPanel(state: state, source: _source),
           ),
           Positioned(
             right: 12,
@@ -412,10 +396,7 @@ class _ChartDemoPageState extends State<ChartDemoPage> {
 }
 
 class _ChanBasicPanel extends StatelessWidget {
-  const _ChanBasicPanel({
-    required this.state,
-    required this.source,
-  });
+  const _ChanBasicPanel({required this.state, required this.source});
 
   final ChartState state;
   final String source;
@@ -461,7 +442,9 @@ class _ChanBasicPanel extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text('来源：$source；Flutter 只渲染 Rust 输出'),
                 Text('窗口：K线=$kline  合并K=$merged  分型=$fx  笔=$bi'),
-                Text('图层：合并K框=${state.mergedBoxes.length}  FX线=${state.fxLines.length}  BI线=${state.biLines.length}'),
+                Text(
+                  '图层：合并K框=${state.mergedBoxes.length}  FX线=${state.fxLines.length}  BI线=${state.biLines.length}',
+                ),
                 const SizedBox(height: 6),
                 const Text('已对齐：include raw/calc、FX strict、BI free candidate'),
                 const Text('已对齐：check_fx_valid、BI endpoint update'),
@@ -502,9 +485,7 @@ class _ToolBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(6),
@@ -572,9 +553,7 @@ class _StatusBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -593,10 +572,7 @@ class _StatusBar extends StatelessWidget {
                 'source=$source | $message$windowText$modeText',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xffcfd8dc),
-                ),
+                style: const TextStyle(fontSize: 12, color: Color(0xffcfd8dc)),
               ),
             ),
           ],

@@ -38,6 +38,10 @@ class ChartQueryParser {
         .map((item) => _parseBiLinePoint(_asStringMap(item)))
         .toList(growable: false);
 
+    final segmentLines = _asList(data['segment_lines'])
+        .map((item) => _parseSegmentLinePoint(_asStringMap(item)))
+        .toList(growable: false);
+
     final viewport = _buildInitialViewport(kline, mergedBoxes);
 
     final meta = ChartMeta(
@@ -45,24 +49,42 @@ class ChartQueryParser {
       query: _asString(metaMap['query'], _asString(data['query'], 'unknown')),
       symbol: symbol,
       klineScope: _asString(metaMap['kline_scope'], 'unknown'),
-      chipScope: _asString(metaMap['chip_scope'] ?? data['chip_scope'], 'unknown'),
+      chipScope: _asString(
+        metaMap['chip_scope'] ?? data['chip_scope'],
+        'unknown',
+      ),
       chipBarId: _asNullableInt(metaMap['chip_bar_id'] ?? data['chip_bar_id']),
-      chipTruncated: _asBool(metaMap['chip_truncated'] ?? data['chip_truncated'], false),
+      chipTruncated: _asBool(
+        metaMap['chip_truncated'] ?? data['chip_truncated'],
+        false,
+      ),
       chipTop: _asInt(metaMap['chip_top'] ?? data['chip_top'], 0),
-      targetBarId: _asNullableInt(metaMap['target_bar_id'] ?? data['target_bar_id']),
-      targetIndex: _asNullableInt(metaMap['target_index'] ?? data['target_index']),
-      klineCount: _asInt(metaMap['kline_count'] ?? data['kline_count'], kline.length),
+      targetBarId: _asNullableInt(
+        metaMap['target_bar_id'] ?? data['target_bar_id'],
+      ),
+      targetIndex: _asNullableInt(
+        metaMap['target_index'] ?? data['target_index'],
+      ),
+      klineCount: _asInt(
+        metaMap['kline_count'] ?? data['kline_count'],
+        kline.length,
+      ),
       mergedCount: _asInt(metaMap['merged_count'], mergedBoxes.length),
       fxCount: _asInt(metaMap['fx_count'], fxLines.length),
       biCount: _asInt(metaMap['bi_count'], biLines.length),
+      segmentCount: _asInt(metaMap['segment_count'], segmentLines.length),
       offset: _asNullableInt(metaMap['offset'] ?? data['offset']),
       limit: _asNullableInt(metaMap['limit'] ?? data['limit']),
       day: _asNullableInt(metaMap['day'] ?? data['day']),
       minute: _asNullableInt(metaMap['minute'] ?? data['minute']),
       before: _asNullableInt(metaMap['before'] ?? data['before']),
       after: _asNullableInt(metaMap['after'] ?? data['after']),
-      windowOffset: _asNullableInt(metaMap['window_offset'] ?? data['window_offset']),
-      windowLimit: _asNullableInt(metaMap['window_limit'] ?? data['window_limit']),
+      windowOffset: _asNullableInt(
+        metaMap['window_offset'] ?? data['window_offset'],
+      ),
+      windowLimit: _asNullableInt(
+        metaMap['window_limit'] ?? data['window_limit'],
+      ),
     );
 
     return ChartState(
@@ -72,6 +94,7 @@ class ChartQueryParser {
       mergedBoxes: mergedBoxes,
       fxLines: fxLines,
       biLines: biLines,
+      segmentLines: segmentLines,
       meta: meta,
       viewport: viewport,
       crosshair: CrosshairState.hidden,
@@ -144,6 +167,23 @@ class ChartQueryParser {
       endBarId: _asInt(item['end_bar_id'], 0),
       endPrice: _asDouble(item['end_price'], 0),
       confirmed: _asBool(item['confirmed'], true),
+    );
+  }
+
+  static SegmentLinePoint _parseSegmentLinePoint(Map<String, dynamic> item) {
+    return SegmentLinePoint(
+      index: _asInt(item['index'], 0),
+      n: _asInt(item['n'], 1),
+      inputN: _asInt(item['input_n'], 1),
+      direction: _asString(item['direction'], 'unknown'),
+      startBiIndex: _asNullableInt(item['start_bi_index']),
+      endBiIndex: _asNullableInt(item['end_bi_index']),
+      startBarId: _asInt(item['start_bar_id'], 0),
+      startPrice: _asDouble(item['start_price'], 0),
+      endBarId: _asInt(item['end_bar_id'], 0),
+      endPrice: _asDouble(item['end_price'], 0),
+      confirmed: _asBool(item['confirmed'], true),
+      reason: _asString(item['reason'], ''),
     );
   }
 

@@ -97,6 +97,36 @@ class BiLinePoint {
   final bool confirmed;
 }
 
+class SegmentLinePoint {
+  const SegmentLinePoint({
+    required this.index,
+    required this.n,
+    required this.inputN,
+    required this.direction,
+    required this.startBiIndex,
+    required this.endBiIndex,
+    required this.startBarId,
+    required this.startPrice,
+    required this.endBarId,
+    required this.endPrice,
+    required this.confirmed,
+    required this.reason,
+  });
+
+  final int index;
+  final int n;
+  final int inputN;
+  final String direction;
+  final int? startBiIndex;
+  final int? endBiIndex;
+  final int startBarId;
+  final double startPrice;
+  final int endBarId;
+  final double endPrice;
+  final bool confirmed;
+  final String reason;
+}
+
 class ChipLevel {
   const ChipLevel({
     required this.priceTick,
@@ -129,6 +159,7 @@ class ChartMeta {
     this.mergedCount,
     this.fxCount,
     this.biCount,
+    this.segmentCount,
     this.offset,
     this.limit,
     this.day,
@@ -154,6 +185,7 @@ class ChartMeta {
   final int? mergedCount;
   final int? fxCount;
   final int? biCount;
+  final int? segmentCount;
   final int? offset;
   final int? limit;
   final int? day;
@@ -203,10 +235,7 @@ class CrosshairState {
 }
 
 class ChartAnchor {
-  const ChartAnchor({
-    required this.barId,
-    required this.price,
-  });
+  const ChartAnchor({required this.barId, required this.price});
 
   final int barId;
   final double price;
@@ -232,6 +261,7 @@ class ChartState {
     required this.mergedBoxes,
     required this.fxLines,
     required this.biLines,
+    required this.segmentLines,
     required this.meta,
     required this.viewport,
     required this.crosshair,
@@ -244,6 +274,7 @@ class ChartState {
   final List<MergedBox> mergedBoxes;
   final List<FxLinePoint> fxLines;
   final List<BiLinePoint> biLines;
+  final List<SegmentLinePoint> segmentLines;
   final ChartMeta meta;
   final ChartViewport viewport;
   final CrosshairState crosshair;
@@ -256,6 +287,7 @@ class ChartState {
     List<MergedBox>? mergedBoxes,
     List<FxLinePoint>? fxLines,
     List<BiLinePoint>? biLines,
+    List<SegmentLinePoint>? segmentLines,
     ChartMeta? meta,
     ChartViewport? viewport,
     CrosshairState? crosshair,
@@ -268,6 +300,7 @@ class ChartState {
       mergedBoxes: mergedBoxes ?? this.mergedBoxes,
       fxLines: fxLines ?? this.fxLines,
       biLines: biLines ?? this.biLines,
+      segmentLines: segmentLines ?? this.segmentLines,
       meta: meta ?? this.meta,
       viewport: viewport ?? this.viewport,
       crosshair: crosshair ?? this.crosshair,
@@ -332,6 +365,7 @@ class ChartState {
       mergedBoxes: const [],
       fxLines: const [],
       biLines: const [],
+      segmentLines: const [],
       meta: const ChartMeta(
         schemaVersion: 1,
         query: 'demo',

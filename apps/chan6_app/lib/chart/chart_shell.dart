@@ -12,6 +12,7 @@ import 'layers/drawing_layer.dart';
 import 'layers/fx_layer.dart';
 import 'layers/kline_layer.dart';
 import 'layers/merged_box_layer.dart';
+import 'layers/segment_line_layer.dart';
 
 class ChartShell extends StatefulWidget {
   const ChartShell({
@@ -44,6 +45,7 @@ class _ChartShellState extends State<ChartShell> {
     MergedBoxLayer(),
     FxLayer(),
     BiLineLayer(),
+    SegmentLineLayer(),
     DrawingLayer(),
     ChipLayer(),
     CrosshairLayer(),
