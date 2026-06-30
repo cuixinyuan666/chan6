@@ -68,6 +68,49 @@ fn chanpy_stage1_t3b_probe_type_filter_can_exclude_t3b() {
     assert!(!snapshot.bsp.iter().any(|row| row.bs_type == "B3b"));
 }
 
+#[test]
+fn chanpy_stage1_t3b_probe_bsp3_config_edges_are_stable() {
+    assert!(t3b_has_target(
+        vec![ChanBspType::T1, ChanBspType::T3b],
+        true,
+        false,
+        false
+    ));
+
+    assert!(t3b_has_target(
+        vec![ChanBspType::T1, ChanBspType::T3b],
+        true,
+        true,
+        false
+    ));
+
+    assert!(t3b_has_target(
+        vec![ChanBspType::T1, ChanBspType::T3b],
+        true,
+        false,
+        true
+    ));
+
+    assert!(t3b_has_target(vec![ChanBspType::T3b], true, false, false));
+
+    assert!(t3b_has_target(vec![ChanBspType::T3b], false, false, false));
+}
+
+fn t3b_has_target(types: Vec<ChanBspType>, follow_1: bool, strict: bool, peak: bool) -> bool {
+    let symbol = "stage1_t3b_probe_candidate";
+    let csv = include_str!("../../../fixtures/chanpy_stage1/input/stage1_t3b_probe_candidate.csv");
+    let klines = parse_stage1_csv(symbol, csv);
+
+    let mut config = ChanConfig::default();
+    config.bsp.types = types;
+    config.bsp.bsp3_follow_1 = follow_1;
+    config.bsp.strict_bsp3 = strict;
+    config.bsp.bsp3_peak = peak;
+
+    let snapshot = analyze_chan_basic_with_config(&klines, "1m", &config);
+    snapshot.bsp.iter().any(|row| row.bs_type == "B3b")
+}
+
 fn parse_stage1_csv(symbol: &str, csv_text: &str) -> Vec<KLine1m> {
     csv_text
         .lines()
