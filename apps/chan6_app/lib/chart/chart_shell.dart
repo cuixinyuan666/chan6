@@ -5,6 +5,7 @@ import 'core/chart_layer.dart';
 import 'core/chart_models.dart';
 import 'core/coordinate_system.dart';
 import 'core/layer_manager.dart';
+import 'layers/bi_line_layer.dart';
 import 'layers/chip_layer.dart';
 import 'layers/crosshair_layer.dart';
 import 'layers/drawing_layer.dart';
@@ -38,16 +39,15 @@ class _ChartShellState extends State<ChartShell> {
   ChartAnchor? _pendingLineStart;
   Offset? _panStartLocal;
 
-  final LayerManager _layerManager = LayerManager(
-    <ChartLayer>[
-      KLineLayer(),
-      MergedBoxLayer(),
-      FxLayer(),
-      DrawingLayer(),
-      ChipLayer(),
-      CrosshairLayer(),
-    ],
-  );
+  final LayerManager _layerManager = LayerManager(<ChartLayer>[
+    KLineLayer(),
+    MergedBoxLayer(),
+    FxLayer(),
+    BiLineLayer(),
+    DrawingLayer(),
+    ChipLayer(),
+    CrosshairLayer(),
+  ]);
 
   @override
   void didUpdateWidget(covariant ChartShell oldWidget) {
@@ -65,7 +65,10 @@ class _ChartShellState extends State<ChartShell> {
     }
   }
 
-  void _handleHover(PointerHoverEvent event, CoordinateSystem coordinateSystem) {
+  void _handleHover(
+    PointerHoverEvent event,
+    CoordinateSystem coordinateSystem,
+  ) {
     final local = event.localPosition;
     final chartRect = coordinateSystem.chartRect;
 
@@ -201,10 +204,7 @@ class _ChartShellState extends State<ChartShell> {
     setState(() {
       _pendingLineStart = null;
       _state = _state.copyWith(
-        drawings: <DrawingObject>[
-          ..._state.drawings,
-          drawing,
-        ],
+        drawings: <DrawingObject>[..._state.drawings, drawing],
       );
     });
   }
@@ -244,10 +244,7 @@ class _ChartShellState extends State<ChartShell> {
       color: const Color(0xff11151c),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final size = Size(
-            constraints.maxWidth,
-            constraints.maxHeight,
-          );
+          final size = Size(constraints.maxWidth, constraints.maxHeight);
 
           final chartRect = Rect.fromLTWH(
             12,
@@ -275,14 +272,9 @@ class _ChartShellState extends State<ChartShell> {
             onExit: _handleExit,
             child: Listener(
               behavior: HitTestBehavior.opaque,
-              onPointerDown: (event) => _handlePointerDown(
-                event,
-                coordinateSystem,
-              ),
-              onPointerUp: (event) => _handlePointerUp(
-                event,
-                coordinateSystem,
-              ),
+              onPointerDown: (event) =>
+                  _handlePointerDown(event, coordinateSystem),
+              onPointerUp: (event) => _handlePointerUp(event, coordinateSystem),
               onPointerCancel: _handlePointerCancel,
               onPointerSignal: _handlePointerSignal,
               child: CustomPaint(
@@ -332,10 +324,7 @@ class _ChartPainter extends CustomPainter {
       text: TextSpan(
         text:
             'Chan6 ${state.symbol} | ${state.meta.query} | merged=${state.meta.mergedCount ?? state.mergedBoxes.length} | fx=${state.meta.fxCount ?? state.fxLines.length} | bi=${state.meta.biCount ?? state.biLines.length}',
-        style: const TextStyle(
-          color: Color(0xffcfd8dc),
-          fontSize: 13,
-        ),
+        style: const TextStyle(color: Color(0xffcfd8dc), fontSize: 13),
       ),
       textDirection: TextDirection.ltr,
       maxLines: 1,
@@ -343,12 +332,7 @@ class _ChartPainter extends CustomPainter {
 
     titlePainter.paint(canvas, const Offset(12, 14));
 
-    layerManager.paint(
-      canvas,
-      size,
-      state,
-      coordinateSystem,
-    );
+    layerManager.paint(canvas, size, state, coordinateSystem);
 
     _paintPendingLine(canvas);
   }
